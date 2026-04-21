@@ -666,7 +666,7 @@ st.caption("ClinicalTrials.gov trigger radar for Domestic Sales (US) and Interna
 
 mode = st.selectbox(
     "Choose radar",
-    options=["Domestic", "International"],
+    options=["Domestic", "International"],["Clinical Scale", "Discovery & Translational"]
     help="Domestic = US team. International = Europe / ROW."
 )
 
