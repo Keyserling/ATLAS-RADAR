@@ -372,7 +372,7 @@ def exclusion_flags(row, mode):
 
     return "; ".join(flags)
 
-def trigger_score(row, mode):
+def trigger_score(row, mode, logic):
     score = 0
     reasons = []
 
@@ -403,57 +403,129 @@ def trigger_score(row, mode):
             reasons.append("DACH/UK")
 
     phase_bucket = row.get("PhaseBucket") or "NONE"
-    if phase_bucket == "PHASE2_3":
-        score += 22
-        reasons.append("phase 2/3 sweet spot")
-    elif phase_bucket == "PHASE2":
-        score += 18
-        reasons.append("phase 2 sweet spot")
-    elif phase_bucket == "PHASE3":
-        score -= 18
-        reasons.append("late phase 3")
-
     cluster = row.get("Cluster")
-    if cluster == "METABOLIC_CVRM":
-        score += 22
-        reasons.append("core CVRM/metabolic")
-    elif cluster == "CELL_THERAPY_CAR_T":
-        score += 10
-        reasons.append("CAR-T")
-    elif cluster == "NEURO":
-        score += 8
-        reasons.append("neuro")
-    elif cluster == "ONCOLOGY_OTHER":
-        score -= 20
-        reasons.append("oncology other")
-    else:
-        score -= 15
-        reasons.append("off focus")
-
     status = (row.get("Status") or "").upper()
-    if status == "RECRUITING":
-        score += 12
-        reasons.append("recruiting")
-    elif status == "ACTIVE_NOT_RECRUITING":
-        score += 10
-        reasons.append("active not recruiting")
-    elif status == "NOT_YET_RECRUITING":
-        score += 8
-        reasons.append("not yet recruiting")
 
     try:
         enrollment = int(row.get("Enrollment") or 0)
     except Exception:
         enrollment = 0
 
-    if enrollment >= 500:
-        score += 8
-        reasons.append("enrollment >=500")
-    elif enrollment >= 150:
-        score += 5
-        reasons.append("enrollment >=150")
-
     sy = row.get("StartYear")
+    po = (row.get("PrimaryOutcome") or "").lower()
+    blob = f"{row.get('ConditionsKeywordsBlob','')} {row.get('TextBlob','')}".lower()
+    title_blob = f"{row.get('Title','')} {row.get('OfficialTitle','')}".lower()
+
+    if logic == "Clinical Scale":
+        if phase_bucket == "PHASE2_3":
+            score += 22
+            reasons.append("phase 2/3 sweet spot")
+        elif phase_bucket == "PHASE2":
+            score += 18
+            reasons.append("phase 2 sweet spot")
+        elif phase_bucket == "PHASE3":
+            score -= 18
+            reasons.append("late phase 3")
+
+        if cluster == "METABOLIC_CVRM":
+            score += 22
+            reasons.append("core CVRM/metabolic")
+        elif cluster == "CELL_THERAPY_CAR_T":
+            score += 10
+            reasons.append("CAR-T")
+        elif cluster == "NEURO":
+            score += 8
+            reasons.append("neuro")
+        elif cluster == "ONCOLOGY_OTHER":
+            score -= 20
+            reasons.append("oncology other")
+        else:
+            score -= 15
+            reasons.append("off focus")
+
+        if status == "RECRUITING":
+            score += 12
+            reasons.append("recruiting")
+        elif status == "ACTIVE_NOT_RECRUITING":
+            score += 10
+            reasons.append("active not recruiting")
+        elif status == "NOT_YET_RECRUITING":
+            score += 8
+            reasons.append("not yet recruiting")
+
+        if enrollment >= 500:
+            score += 8
+            reasons.append("enrollment >=500")
+        elif enrollment >= 150:
+            score += 5
+            reasons.append("enrollment >=150")
+
+    elif logic == "Discovery & Translational":
+        if phase_bucket == "PHASE1":
+            score += 18
+            reasons.append("phase 1 signal")
+        elif phase_bucket == "PHASE2":
+            score += 20
+            reasons.append("phase 2 signal")
+        elif phase_bucket == "PHASE2_3":
+            score += 14
+            reasons.append("phase 2/3 signal")
+        elif phase_bucket == "PHASE3":
+            score -= 8
+            reasons.append("less translational")
+
+        if cluster == "METABOLIC_CVRM":
+            score += 18
+            reasons.append("metabolic/CVRM fit")
+        elif cluster == "NEURO":
+            score += 14
+            reasons.append("neuro fit")
+        elif cluster == "CELL_THERAPY_CAR_T":
+            score += 12
+            reasons.append("cell therapy fit")
+        elif cluster == "ONCOLOGY_OTHER":
+            score -= 10
+            reasons.append("oncology other")
+        else:
+            score -= 8
+            reasons.append("off focus")
+
+        if status == "RECRUITING":
+            score += 8
+            reasons.append("recruiting")
+        elif status == "ACTIVE_NOT_RECRUITING":
+            score += 6
+            reasons.append("active not recruiting")
+        elif status == "NOT_YET_RECRUITING":
+            score += 4
+            reasons.append("not yet recruiting")
+
+        if enrollment >= 500:
+            score += 2
+            reasons.append("larger cohort")
+        elif enrollment >= 50:
+            score += 4
+            reasons.append("right-sized cohort")
+        elif enrollment >= 20:
+            score += 3
+            reasons.append("smaller cohort acceptable")
+
+        translational_keywords = [
+            "biomarker", "biomarkers", "pharmacodynamic", "exploratory",
+            "target engagement", "mechanism", "mechanistic", "stratification",
+            "patient stratification", "precision medicine", "omics",
+            "metabolomics", "lipidomics", "signature", "profiling",
+            "proof of concept", "proof-of-concept"
+        ]
+
+        kw_hits = sum(1 for k in translational_keywords if k in blob or k in po or k in title_blob)
+        if kw_hits >= 3:
+            score += 18
+            reasons.append("strong translational language")
+        elif kw_hits >= 1:
+            score += 10
+            reasons.append("translational language")
+
     if sy:
         if sy >= 2025:
             score += 8
@@ -468,8 +540,6 @@ def trigger_score(row, mode):
             score -= 10
             reasons.append("old start")
 
-    po = (row.get("PrimaryOutcome") or "").lower()
-    blob = f"{row.get('ConditionsKeywordsBlob','')} {row.get('TextBlob','')}".lower()
     if any(k in po for k in BIOMARKER_KEYWORDS):
         score += 5
         reasons.append("primary biomarker signal")
