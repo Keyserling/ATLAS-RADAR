@@ -673,7 +673,6 @@ logic = st.selectbox(
     "Select Opportunity Model",
     ["Clinical Scale", "Discovery & Translational"]
 )
-)
 
 run = st.button("Run Atlas Radar", type="primary", use_container_width=True)
 
