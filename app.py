@@ -732,6 +732,22 @@ def df_download_button(df: pd.DataFrame, filename: str, label: str):
 # =========================================================
 
 st.title("Atlas Radar")
+with st.expander("What is Atlas Radar? (technical overview)"):
+
+    st.markdown("""
+Atlas Radar is a lightweight analytics layer built on top of publicly available ClinicalTrials.gov data. Technically, it ingests large volumes of trial records across a defined set of target sponsor accounts, deduplicates them, and enriches each record with derived features such as sponsor mapping, phase classification, geographic signal (US vs EU/ROW), enrollment size, timing (start year), and disease cluster assignment.
+
+On top of this structured dataset, a configurable scoring engine ranks each trial using a weighted model. The model combines sponsor relevance, development stage, operational status, scale, geography, and textual signals (e.g. biomarker or mechanistic language extracted from titles and outcomes). The scoring logic is modular and can be switched between different commercial lenses—for example a “Clinical Scale” model optimized for large Phase 2/3 programs, and a “Discovery & Translational” model that prioritizes earlier-stage, mechanism-driven studies.
+
+The output is a filtered and ranked set of trials, segmented into:
+- a core opportunity set (high-scoring, near-term entry points)
+- a Phase 3 watchlist (large, late-stage programs with strategic relevance)
+- and optional side streams (e.g. neuro, cell therapy)
+
+Crucially, the system is parameterized by account list and geography (Domestic vs International), allowing direct comparison of opportunity density across teams, accounts, and regions.
+
+Atlas Radar is not a CRM replacement but a signal-generation layer: it transforms unstructured clinical activity into a small set of prioritized entry points that can then be linked to real decision-makers via existing tools.
+""")
 st.caption("ClinicalTrials.gov trigger radar for Domestic Sales (US) and International Sales (EU/ROW).")
 
 mode = st.selectbox(
