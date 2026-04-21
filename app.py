@@ -653,7 +653,7 @@ def fetch_trials(mode: str):
         df = df[df["EU_SIGNAL"] == True].copy()
 
     df["ExclusionFlags"] = df.apply(lambda row: exclusion_flags(row, mode), axis=1)
-    scores = df.apply(lambda row: trigger_score(row, mode), axis=1)
+    scores = df.apply(lambda row: trigger_score(row, mode, logic), axis=1)
     df["TriggerScore"] = [x[0] for x in scores]
     df["ScoreReasons"] = [x[1] for x in scores]
 
