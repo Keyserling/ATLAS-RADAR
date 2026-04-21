@@ -665,9 +665,14 @@ st.title("Atlas Radar")
 st.caption("ClinicalTrials.gov trigger radar for Domestic Sales (US) and International Sales (EU/ROW).")
 
 mode = st.selectbox(
-    "Choose radar",
-    options=["Domestic", "International"],["Clinical Scale", "Discovery & Translational"]
-    help="Domestic = US team. International = Europe / ROW."
+    "Select Radar",
+    ["Domestic", "International"]
+)
+
+logic = st.selectbox(
+    "Select Opportunity Model",
+    ["Clinical Scale", "Discovery & Translational"]
+)
 )
 
 run = st.button("Run Atlas Radar", type="primary", use_container_width=True)
