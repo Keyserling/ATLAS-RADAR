@@ -746,7 +746,7 @@ The output is a filtered and ranked set of trials, segmented into:
 
 Crucially, the system is parameterized by account list and geography (Domestic vs International), allowing direct comparison of opportunity density across teams, accounts, and regions.
 
-Atlas Radar is not a tool replacement but a signal-generation layer: it transforms unstructured clinical activity into a small set of prioritized entry points that can then be linked to real decision-makers via existing tools.
+Atlas Radar is not a tool replacement but a signal-generation layer: it transforms unstructured clinical activity into a small set of prioritized entry points that can then be linked to real decision-makers via existing tools. Reach out to Helmut v. Keyserling
 """)
 st.caption("ClinicalTrials.gov trigger radar for Domestic Sales (US) and International Sales (EU/ROW).")
 
