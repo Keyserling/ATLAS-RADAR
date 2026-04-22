@@ -663,6 +663,8 @@ def fetch_trials(mode: str):
         df["Score_10"] = (df["TriggerScore"] / max_score * 10).round(1)
     else:
         df["Score_10"] = 0.0
+        cols = ["Score_10"] + [c for c in df.columns if c != "Score_10"]
+df = df[cols]
     metabolic_core = df[
         (df["LeadSponsorTargetAccounts"].fillna("") != "") &
         (df["StudyType"].fillna("").str.upper() == "INTERVENTIONAL") &
