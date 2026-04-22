@@ -804,12 +804,16 @@ if run:
     )
 
     with tab1:
-        st.dataframe(metabolic_core, use_container_width=True, hide_index=True)
-        df_download_button(
-            metabolic_core,
-            f"atlas_radar_{mode.lower()}_metabolic_core.csv",
-            "Download Metabolic Core CSV"
-        )
+    mc = metabolic_core.copy()
+    mc = mc[["Score_10"] + [c for c in mc.columns if c != "Score_10"]]
+
+    st.dataframe(style_score_table(mc), use_container_width=True, hide_index=True)
+
+    df_download_button(
+        metabolic_core,
+        f"atlas_radar_{mode.lower()}_metabolic_core.csv",
+        "Download Metabolic Core CSV"
+    )
 
     with tab2:
         st.dataframe(neuro_celltherapy, use_container_width=True, hide_index=True)
