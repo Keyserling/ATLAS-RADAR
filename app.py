@@ -722,7 +722,23 @@ def fetch_trials(mode: str):
     debug_summary = pd.DataFrame(debug_rows)
 
     return df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary
+def style_score_table(df: pd.DataFrame):
+    if df.empty:
+        return df
 
+    def color(val):
+        try:
+            v = float(val)
+        except Exception:
+            return ""
+        if v >= 8:
+            return "background-color: #2ecc71; color: white;"
+        elif v >= 5:
+            return "background-color: #f1c40f; color: black;"
+        else:
+            return "background-color: #e74c3c; color: white;"
+
+    return df.style.map(color, subset=["Score_10"])
 def df_download_button(df: pd.DataFrame, filename: str, label: str):
     csv_bytes = df.to_csv(index=False).encode("utf-8")
     st.download_button(
