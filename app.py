@@ -918,7 +918,7 @@ st.title("Atlas Radar")
 
 with st.expander("What is Atlas Radar? (technical overview)"):
     st.markdown("""
-Atlas Radar is an analytics layer built on top of publicly available ClinicalTrials.gov data.
+Atlas Radar 7.0 is an analytics layer built on top of publicly available ClinicalTrials.gov data.
 
 Technically, it ingests trial records across a defined set of target sponsor accounts, deduplicates them, and enriches each record with derived features such as sponsor mapping, phase classification, geographic signal (US vs EU/ROW), enrollment size, timing, and disease cluster assignment.
 
@@ -929,7 +929,7 @@ The output is a filtered and ranked set of trials segmented into:
 - Neuro / Cell Therapy
 - Phase 3 Watchlist
 
-Atlas Radar is a signal-generation layer, not a CRM replacement.
+Atlas Radar is a signal-generation layer, not a tool replacement. Ask Helmut.
 """)
 
 st.caption("ClinicalTrials.gov trigger radar for Domestic Sales (US) and International Sales (EU/ROW).")
