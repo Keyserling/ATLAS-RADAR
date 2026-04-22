@@ -5,7 +5,7 @@ import requests
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="Atlas Radar V6.3", layout="wide")
+st.set_page_config(page_title="Atlas Radar", layout="wide")
 
 # =========================================================
 # CONFIG
