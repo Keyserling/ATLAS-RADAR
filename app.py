@@ -662,7 +662,7 @@ def style_score_table(df: pd.DataFrame) -> pd.io.formats.style.Styler:
             return "background-color: #166534; color: white;"
         return ""
 
-    styler = df.style.applymap(color_score, subset=["Score_10"]).applymap(color_band, subset=["ScoreBand"])
+    styler = df.style.map(color_score, subset=["Score_10"]).map(color_band, subset=["ScoreBand"])
     return styler
 
 def prepare_display_df(df: pd.DataFrame) -> pd.DataFrame:
