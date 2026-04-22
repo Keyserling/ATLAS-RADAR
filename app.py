@@ -818,7 +818,7 @@ def fetch_trials(mode: str, logic: str):
         error_df = pd.DataFrame(request_errors)
         return df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), debug_summary, error_df
 
-    df = dedupe_trials(df)
+    df = df.groupby("NCT", as_index=False).first()
 
     if mode == "Domestic":
         df = df[df["US_SIGNAL"] == True].copy()
