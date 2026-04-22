@@ -735,7 +735,7 @@ st.title("Atlas Radar")
 with st.expander("What is Atlas Radar? (technical overview)"):
 
     st.markdown("""
-Atlas Radar is an analytics layer built on top of publicly available ClinicalTrials.gov data. Technically, it ingests large volumes of trial records across a defined set of target sponsor accounts, deduplicates them, and enriches each record with derived features such as sponsor mapping, phase classification, geographic signal (US vs EU/ROW), enrollment size, timing (start year), and disease cluster assignment.
+Atlas Radar V6.3 is an analytics layer built on top of publicly available ClinicalTrials.gov data. Technically, it ingests large volumes of trial records across a defined set of target sponsor accounts, deduplicates them, and enriches each record with derived features such as sponsor mapping, phase classification, geographic signal (US vs EU/ROW), enrollment size, timing (start year), and disease cluster assignment.
 
 On top of this structured dataset, a configurable scoring engine ranks each trial using a weighted model. The model combines sponsor relevance, development stage, operational status, scale, geography, and textual signals (e.g. biomarker or mechanistic language extracted from titles and outcomes). The scoring logic is modular and can be switched between different commercial lenses—for example a “Clinical Scale” model optimized for large Phase 2/3 programs, and a “Discovery & Translational” model that prioritizes earlier-stage, mechanism-driven studies.
 
