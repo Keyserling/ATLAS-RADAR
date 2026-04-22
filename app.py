@@ -1,9 +1,15 @@
 import io
 import re
 import time
+from typing import Dict, List, Tuple, Any
+
 import requests
 import pandas as pd
 import streamlit as st
+
+# =========================================================
+# PAGE
+# =========================================================
 
 st.set_page_config(page_title="Atlas Radar", layout="wide")
 
@@ -32,10 +38,11 @@ ALLOWED_WATCHLIST_STATUSES = {"RECRUITING", "ACTIVE_NOT_RECRUITING"}
 MIN_WATCHLIST_START_YEAR = 2021
 
 EU_COUNTRIES = {
-    "Austria","Belgium","Bulgaria","Croatia","Cyprus","Czechia","Czech Republic","Denmark","Estonia",
-    "Finland","France","Germany","Greece","Hungary","Ireland","Italy","Latvia","Lithuania","Luxembourg",
-    "Malta","Netherlands","Poland","Portugal","Romania","Slovakia","Slovenia","Spain","Sweden",
-    "Switzerland","United Kingdom","Norway","Iceland","Liechtenstein"
+    "Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia", "Czech Republic",
+    "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary",
+    "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta", "Netherlands",
+    "Poland", "Portugal", "Romania", "Slovakia", "Slovenia", "Spain", "Sweden",
+    "Switzerland", "United Kingdom", "Norway", "Iceland", "Liechtenstein"
 }
 
 DACH_UK_PRIORITY = {"Germany", "Austria", "Switzerland", "United Kingdom"}
@@ -187,11 +194,33 @@ PHARMA_TERMS = [
     'Merck OR MSD OR "Merck Sharp & Dohme"'
 ]
 
+DISPLAY_COLUMNS = [
+    "Score_10",
+    "ScoreBand",
+    "TriggerScore",
+    "LeadSponsorTargetAccounts",
+    "CollaboratorTargetAccounts",
+    "LeadSponsor",
+    "Title",
+    "Status",
+    "PhaseBucket",
+    "Enrollment",
+    "StartYear",
+    "Cluster",
+    "Countries",
+    "NCT",
+    "PrimaryOutcome",
+    "ScoreReasons",
+    "ExclusionFlags",
+    "MatchedQueryTerm",
+    "Collaborators",
+]
+
 # =========================================================
 # HELPERS
 # =========================================================
 
-def safe_get(dct, path, default=None):
+def safe_get(dct: dict, path: List[str], default=None):
     cur = dct
     for k in path:
         if not isinstance(cur, dict) or k not in cur:
@@ -199,32 +228,35 @@ def safe_get(dct, path, default=None):
         cur = cur[k]
     return cur
 
-def contains_any(text, keywords):
-    text = (text or "").lower()
-    return any(k.lower() in text for k in keywords)
+def norm_text(text: Any) -> str:
+    return re.sub(r"\s+", " ", str(text or "").strip()).lower()
 
-def count_matches(text, keywords):
-    text = (text or "").lower()
-    return sum(1 for kw in keywords if kw.lower() in text)
+def contains_any(text: Any, keywords: List[str]) -> bool:
+    txt = norm_text(text)
+    return any(norm_text(k) in txt for k in keywords)
 
-def parse_year(date_str):
+def count_matches(text: Any, keywords: List[str]) -> int:
+    txt = norm_text(text)
+    return sum(1 for kw in keywords if norm_text(kw) in txt)
+
+def parse_year(date_str: Any):
     if not date_str:
         return None
     m = re.search(r"(19|20)\d{2}", str(date_str))
     return int(m.group(0)) if m else None
 
-def get_sponsor_block(protocol):
+def get_sponsor_block(protocol: dict) -> dict:
     return protocol.get("sponsorCollaboratorsModule", {}) or {}
 
-def get_lead_sponsor(protocol):
+def get_lead_sponsor(protocol: dict) -> str:
     sponsor_mod = get_sponsor_block(protocol)
     return safe_get(sponsor_mod, ["leadSponsor", "name"], "") or ""
 
-def get_collaborators(protocol):
+def get_collaborators(protocol: dict) -> List[str]:
     sponsor_mod = get_sponsor_block(protocol)
     return [c.get("name", "") for c in (sponsor_mod.get("collaborators") or []) if c.get("name")]
 
-def get_sponsor_names(protocol):
+def get_sponsor_names(protocol: dict) -> List[str]:
     names = []
     lead = get_lead_sponsor(protocol)
     if lead:
@@ -232,31 +264,31 @@ def get_sponsor_names(protocol):
     names.extend(get_collaborators(protocol))
     return names
 
-def get_matching_accounts(protocol):
+def get_matching_accounts(protocol: dict) -> List[str]:
     sponsor_text = " | ".join(get_sponsor_names(protocol)).lower()
     matched = []
     for canonical_name, aliases in TARGET_ACCOUNT_ALIASES.items():
         if any(alias in sponsor_text for alias in aliases):
             matched.append(canonical_name)
-    return matched
+    return sorted(list(set(matched)))
 
-def lead_sponsor_matches_target(protocol):
+def lead_sponsor_matches_target(protocol: dict) -> List[str]:
     lead = get_lead_sponsor(protocol).lower()
     matches = []
     for canonical_name, aliases in TARGET_ACCOUNT_ALIASES.items():
         if any(alias in lead for alias in aliases):
             matches.append(canonical_name)
-    return matches
+    return sorted(list(set(matches)))
 
-def collaborator_matches_target(protocol):
+def collaborator_matches_target(protocol: dict) -> List[str]:
     collabs = " | ".join(get_collaborators(protocol)).lower()
     matches = []
     for canonical_name, aliases in TARGET_ACCOUNT_ALIASES.items():
         if any(alias in collabs for alias in aliases):
             matches.append(canonical_name)
-    return matches
+    return sorted(list(set(matches)))
 
-def get_country_summary(protocol):
+def get_country_summary(protocol: dict) -> List[str]:
     countries = set()
     locations = protocol.get("contactsLocationsModule", {}).get("locations", []) or []
     for loc in locations:
@@ -268,13 +300,13 @@ def get_country_summary(protocol):
             countries.add(alt_country.strip())
     return sorted(list(countries))
 
-def get_conditions_keywords_blob(protocol):
+def get_conditions_keywords_blob(protocol: dict) -> str:
     cond_mod = protocol.get("conditionsModule", {}) or {}
     conditions = cond_mod.get("conditions", []) or []
     keywords = cond_mod.get("keywords", []) or []
     return " | ".join([str(x) for x in list(conditions) + list(keywords)]).lower()
 
-def get_text_blob(protocol):
+def get_text_blob(protocol: dict) -> str:
     ident = protocol.get("identificationModule", {}) or {}
     desc = protocol.get("descriptionModule", {}) or {}
     outcomes = protocol.get("outcomesModule", {}) or {}
@@ -287,7 +319,7 @@ def get_text_blob(protocol):
     ]
     return " ".join([str(x) for x in parts if x]).lower()
 
-def detect_cluster(protocol):
+def detect_cluster(protocol: dict) -> Tuple[str, int]:
     ck_blob = get_conditions_keywords_blob(protocol)
     text_blob = get_text_blob(protocol)
     combined = f"{ck_blob} | {text_blob}"
@@ -299,32 +331,36 @@ def detect_cluster(protocol):
     neuro_support_hits = count_matches(combined, NEURO_SUPPORT)
     oncology_hits = count_matches(combined, ONCOLOGY_OTHER_TERMS)
 
-    if metabolic_hits >= 1:
-        return "METABOLIC_CVRM", metabolic_hits
-    if cart_strong_hits >= 1:
-        return "CELL_THERAPY_CAR_T", cart_strong_hits + cart_support_hits
-    if neuro_strong_hits >= 1:
-        return "NEURO", neuro_strong_hits + neuro_support_hits
-    if oncology_hits >= 1:
-        return "ONCOLOGY_OTHER", oncology_hits
-    return "OTHER", 0
+    hit_map = {
+        "METABOLIC_CVRM": metabolic_hits,
+        "CELL_THERAPY_CAR_T": cart_strong_hits + cart_support_hits,
+        "NEURO": neuro_strong_hits + neuro_support_hits,
+        "ONCOLOGY_OTHER": oncology_hits
+    }
 
-def lead_sponsor_is_academic(lead_sponsor):
+    best_cluster = max(hit_map, key=hit_map.get)
+    best_hits = hit_map[best_cluster]
+
+    if best_hits <= 0:
+        return "OTHER", 0
+    return best_cluster, best_hits
+
+def lead_sponsor_is_academic(lead_sponsor: str) -> bool:
     return contains_any(lead_sponsor or "", ACADEMIC_TERMS)
 
-def has_us_signal(countries):
+def has_us_signal(countries: List[str]) -> bool:
     c = set(countries or [])
     return "United States" in c
 
-def us_pure(countries):
+def us_pure(countries: List[str]) -> bool:
     c = set(countries or [])
     return len(c) > 0 and c == {"United States"}
 
-def has_eu_signal(countries):
+def has_eu_signal(countries: List[str]) -> bool:
     c = set(countries or [])
     return len(c.intersection(EU_COUNTRIES)) > 0
 
-def parse_phase_bucket(phases):
+def parse_phase_bucket(phases: str) -> str:
     p = (phases or "").upper()
     if "PHASE2" in p and "PHASE3" in p:
         return "PHASE2_3"
@@ -336,7 +372,18 @@ def parse_phase_bucket(phases):
         return "PHASE1"
     return "NONE"
 
-def exclusion_flags(row, mode):
+def get_score_band(score_10: float) -> str:
+    try:
+        s = float(score_10)
+    except Exception:
+        return "Watch"
+    if s >= 8.0:
+        return "Hot"
+    if s >= 5.5:
+        return "Warm"
+    return "Watch"
+
+def exclusion_flags(row: pd.Series, mode: str) -> str:
     flags = []
 
     title_blob = f"{row.get('Title','')} {row.get('OfficialTitle','')}".lower()
@@ -372,7 +419,7 @@ def exclusion_flags(row, mode):
 
     return "; ".join(flags)
 
-def trigger_score(row, mode, logic):
+def trigger_score(row: pd.Series, mode: str, logic: str) -> Tuple[int, str]:
     score = 0
     reasons = []
 
@@ -407,7 +454,7 @@ def trigger_score(row, mode, logic):
     status = (row.get("Status") or "").upper()
 
     try:
-        enrollment = int(row.get("Enrollment") or 0)
+        enrollment = int(float(row.get("Enrollment") or 0))
     except Exception:
         enrollment = 0
 
@@ -566,29 +613,110 @@ def trigger_score(row, mode, logic):
 
     return max(score, 0), "; ".join(reasons)
 
+def dedupe_trials(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        return df
+
+    work = df.copy()
+
+    work["DedupLeadMatch"] = work["LeadSponsorTargetAccounts"].fillna("").apply(lambda x: 1 if x.strip() else 0)
+    work["DedupCollabMatch"] = work["CollaboratorTargetAccounts"].fillna("").apply(lambda x: 1 if x.strip() else 0)
+    work["DedupTextLen"] = (
+        work["Title"].fillna("").str.len()
+        + work["OfficialTitle"].fillna("").str.len()
+        + work["TextBlob"].fillna("").str.len()
+    )
+    work["DedupEnrollment"] = pd.to_numeric(work["Enrollment"], errors="coerce").fillna(0)
+
+    work = work.sort_values(
+        by=["NCT", "DedupLeadMatch", "DedupCollabMatch", "ClusterHits", "DedupTextLen", "DedupEnrollment"],
+        ascending=[True, False, False, False, False, False]
+    )
+
+    work = work.drop_duplicates(subset=["NCT"], keep="first").copy()
+
+    work.drop(columns=["DedupLeadMatch", "DedupCollabMatch", "DedupTextLen", "DedupEnrollment"], inplace=True)
+    return work.reset_index(drop=True)
+
+def style_score_table(df: pd.DataFrame) -> pd.io.formats.style.Styler:
+    if df.empty:
+        return df.style
+
+    def color_score(val):
+        try:
+            v = float(val)
+        except Exception:
+            return ""
+        if v >= 8.0:
+            return "background-color: #b91c1c; color: white;"
+        if v >= 5.5:
+            return "background-color: #d97706; color: white;"
+        return "background-color: #166534; color: white;"
+
+    def color_band(val):
+        if val == "Hot":
+            return "background-color: #b91c1c; color: white;"
+        if val == "Warm":
+            return "background-color: #d97706; color: white;"
+        if val == "Watch":
+            return "background-color: #166534; color: white;"
+        return ""
+
+    styler = df.style.applymap(color_score, subset=["Score_10"]).applymap(color_band, subset=["ScoreBand"])
+    return styler
+
+def prepare_display_df(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        return df
+    cols = [c for c in DISPLAY_COLUMNS if c in df.columns]
+    remaining = [c for c in df.columns if c not in cols]
+    return df[cols + remaining].copy()
+
+def df_download_button(df: pd.DataFrame, filename: str, label: str):
+    csv_bytes = df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label=label,
+        data=csv_bytes,
+        file_name=filename,
+        mime="text/csv",
+        use_container_width=True,
+    )
+
+# =========================================================
+# FETCH
+# =========================================================
+
 @st.cache_data(show_spinner=False, ttl=3600)
-def fetch_trials(mode: str):
+def fetch_trials(mode: str, logic: str):
     all_rows = []
+    request_errors = []
+
+    session = requests.Session()
 
     for term in PHARMA_TERMS:
         page_token = None
+
         for _ in range(MAX_PAGES_PER_QUERY):
             params = {
                 "query.term": term,
                 "pageSize": PAGE_SIZE,
-                "format": "json"
+                "format": "json",
             }
             if page_token:
                 params["pageToken"] = page_token
 
-            r = requests.get(BASE_URL, params=params, timeout=TIMEOUT)
-            r.raise_for_status()
-            data = r.json()
+            try:
+                r = session.get(BASE_URL, params=params, timeout=TIMEOUT)
+                r.raise_for_status()
+                data = r.json()
+            except Exception as e:
+                request_errors.append({"QueryTerm": term, "Error": str(e)})
+                break
 
-            studies = data.get("studies", [])
+            studies = data.get("studies", []) or []
 
-            for st in studies:
-                prot = st.get("protocolSection", {}) or {}
+            for study in studies:
+                prot = study.get("protocolSection", {}) or {}
                 ident = prot.get("identificationModule", {}) or {}
                 design = prot.get("designModule", {}) or {}
                 status_mod = prot.get("statusModule", {}) or {}
@@ -632,51 +760,76 @@ def fetch_trials(mode: str):
                     "Cluster": cluster,
                     "ClusterHits": cluster_hits,
                     "ConditionsKeywordsBlob": get_conditions_keywords_blob(prot),
-                    "TextBlob": text_blob
+                    "TextBlob": text_blob,
                 }
                 all_rows.append(row)
 
             page_token = data.get("nextPageToken")
             if not page_token:
                 break
+
             time.sleep(REQUEST_SLEEP_SECONDS)
 
     df = pd.DataFrame(all_rows)
-    if df.empty:
-        return df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
-    df = df.groupby("NCT", as_index=False).first()
+    if df.empty:
+        debug_rows = [
+            {"Metric": "full_rows", "Value": 0},
+            {"Metric": "metabolic_core_rows", "Value": 0},
+            {"Metric": "neuro_celltherapy_rows", "Value": 0},
+            {"Metric": "phase3_watchlist_rows", "Value": 0},
+            {"Metric": "request_errors", "Value": len(request_errors)},
+        ]
+        debug_summary = pd.DataFrame(debug_rows)
+        error_df = pd.DataFrame(request_errors)
+        return df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), debug_summary, error_df
+
+    df = dedupe_trials(df)
 
     if mode == "Domestic":
         df = df[df["US_SIGNAL"] == True].copy()
     else:
         df = df[df["EU_SIGNAL"] == True].copy()
 
+    if df.empty:
+        debug_rows = [
+            {"Metric": "full_rows", "Value": 0},
+            {"Metric": "metabolic_core_rows", "Value": 0},
+            {"Metric": "neuro_celltherapy_rows", "Value": 0},
+            {"Metric": "phase3_watchlist_rows", "Value": 0},
+            {"Metric": "request_errors", "Value": len(request_errors)},
+        ]
+        debug_summary = pd.DataFrame(debug_rows)
+        error_df = pd.DataFrame(request_errors)
+        return df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), debug_summary, error_df
+
     df["ExclusionFlags"] = df.apply(lambda row: exclusion_flags(row, mode), axis=1)
     scores = df.apply(lambda row: trigger_score(row, mode, logic), axis=1)
     df["TriggerScore"] = [x[0] for x in scores]
     df["ScoreReasons"] = [x[1] for x in scores]
-    
-    max_score = df["TriggerScore"].max()
 
+    max_score = df["TriggerScore"].max()
     if max_score > 0:
         df["Score_10"] = (df["TriggerScore"] / max_score * 10).round(1)
     else:
         df["Score_10"] = 0.0
+
+    df["ScoreBand"] = df["Score_10"].apply(get_score_band)
+
     metabolic_core = df[
         (df["LeadSponsorTargetAccounts"].fillna("") != "") &
         (df["StudyType"].fillna("").str.upper() == "INTERVENTIONAL") &
         (df["LeadSponsorAcademic"] == False) &
-        (~df["ExclusionFlags"].fillna("").str.contains("title_noise")) &
-        (~df["ExclusionFlags"].fillna("").str.contains("oncology_other")) &
-        (~df["ExclusionFlags"].fillna("").str.contains("off_focus")) &
+        (~df["ExclusionFlags"].fillna("").str.contains("title_noise", na=False)) &
+        (~df["ExclusionFlags"].fillna("").str.contains("oncology_other", na=False)) &
+        (~df["ExclusionFlags"].fillna("").str.contains("off_focus", na=False)) &
         (df["PhaseBucket"].isin(ALLOWED_CORE_PHASES)) &
         (df["Status"].fillna("").str.upper().isin(ALLOWED_CORE_STATUSES)) &
         (pd.to_numeric(df["Enrollment"], errors="coerce").fillna(0) >= MIN_ENROLLMENT_CORE) &
         (pd.to_numeric(df["StartYear"], errors="coerce").fillna(0) >= MIN_CORE_START_YEAR) &
         (df["Cluster"] == "METABOLIC_CVRM")
     ].copy().sort_values(
-        by=["TriggerScore", "StartDate", "Enrollment"],
+        by=["TriggerScore", "StartYear", "Enrollment"],
         ascending=[False, False, False]
     ).reset_index(drop=True)
 
@@ -684,16 +837,16 @@ def fetch_trials(mode: str):
         (df["LeadSponsorTargetAccounts"].fillna("") != "") &
         (df["StudyType"].fillna("").str.upper() == "INTERVENTIONAL") &
         (df["LeadSponsorAcademic"] == False) &
-        (~df["ExclusionFlags"].fillna("").str.contains("title_noise")) &
-        (~df["ExclusionFlags"].fillna("").str.contains("oncology_other")) &
-        (~df["ExclusionFlags"].fillna("").str.contains("off_focus")) &
+        (~df["ExclusionFlags"].fillna("").str.contains("title_noise", na=False)) &
+        (~df["ExclusionFlags"].fillna("").str.contains("oncology_other", na=False)) &
+        (~df["ExclusionFlags"].fillna("").str.contains("off_focus", na=False)) &
         (df["PhaseBucket"].isin(ALLOWED_SIDE_PHASES)) &
         (df["Status"].fillna("").str.upper().isin(ALLOWED_SIDE_STATUSES)) &
         (pd.to_numeric(df["Enrollment"], errors="coerce").fillna(0) >= MIN_ENROLLMENT_SIDE) &
         (pd.to_numeric(df["StartYear"], errors="coerce").fillna(0) >= MIN_SIDE_START_YEAR) &
         (df["Cluster"].isin(["NEURO", "CELL_THERAPY_CAR_T"]))
     ].copy().sort_values(
-        by=["TriggerScore", "StartDate", "Enrollment"],
+        by=["TriggerScore", "StartYear", "Enrollment"],
         ascending=[False, False, False]
     ).reset_index(drop=True)
 
@@ -701,14 +854,14 @@ def fetch_trials(mode: str):
         (df["LeadSponsorTargetAccounts"].fillna("") != "") &
         (df["StudyType"].fillna("").str.upper() == "INTERVENTIONAL") &
         (df["LeadSponsorAcademic"] == False) &
-        (~df["ExclusionFlags"].fillna("").str.contains("title_noise")) &
-        (~df["ExclusionFlags"].fillna("").str.contains("oncology_other")) &
-        (~df["ExclusionFlags"].fillna("").str.contains("off_focus")) &
+        (~df["ExclusionFlags"].fillna("").str.contains("title_noise", na=False)) &
+        (~df["ExclusionFlags"].fillna("").str.contains("oncology_other", na=False)) &
+        (~df["ExclusionFlags"].fillna("").str.contains("off_focus", na=False)) &
         (df["PhaseBucket"].isin(ALLOWED_WATCHLIST_PHASES)) &
         (df["Status"].fillna("").str.upper().isin(ALLOWED_WATCHLIST_STATUSES)) &
         (pd.to_numeric(df["StartYear"], errors="coerce").fillna(0) >= MIN_WATCHLIST_START_YEAR)
     ].copy().sort_values(
-        by=["TriggerScore", "StartDate", "Enrollment"],
+        by=["TriggerScore", "StartYear", "Enrollment"],
         ascending=[False, False, False]
     ).reset_index(drop=True)
 
@@ -718,42 +871,39 @@ def fetch_trials(mode: str):
         {"Metric": "neuro_celltherapy_rows", "Value": len(neuro_celltherapy)},
         {"Metric": "phase3_watchlist_rows", "Value": len(phase3_watchlist)},
         {"Metric": "us_pure_rows", "Value": int(df["US_PURE"].sum()) if "US_PURE" in df.columns else 0},
+        {"Metric": "request_errors", "Value": len(request_errors)},
     ]
     debug_summary = pd.DataFrame(debug_rows)
+    error_df = pd.DataFrame(request_errors)
 
-    return df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary
-
-def df_download_button(df: pd.DataFrame, filename: str, label: str):
-    csv_bytes = df.to_csv(index=False).encode("utf-8")
-    st.download_button(
-        label=label,
-        data=csv_bytes,
-        file_name=filename,
-        mime="text/csv",
-        use_container_width=True,
-    )
+    return df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df
 
 # =========================================================
 # UI
 # =========================================================
 
 st.title("Atlas Radar")
+
 with st.expander("What is Atlas Radar? (technical overview)"):
-
     st.markdown("""
-Atlas Radar V6.3 is an analytics layer built on top of publicly available ClinicalTrials.gov data. Technically, it ingests large volumes of trial records across a defined set of target sponsor accounts, deduplicates them, and enriches each record with derived features such as sponsor mapping, phase classification, geographic signal (US vs EU/ROW), enrollment size, timing (start year), and disease cluster assignment.
+Atlas Radar is an analytics layer built on top of publicly available ClinicalTrials.gov data.
 
-On top of this structured dataset, a configurable scoring engine ranks each trial using a weighted model. The model combines sponsor relevance, development stage, operational status, scale, geography, and textual signals (e.g. biomarker or mechanistic language extracted from titles and outcomes). The scoring logic is modular and can be switched between different commercial lenses—for example a “Clinical Scale” model optimized for large Phase 2/3 programs, and a “Discovery & Translational” model that prioritizes earlier-stage, mechanism-driven studies.
+Technically, it ingests trial records across a defined set of target sponsor accounts, deduplicates them, and enriches each record with derived features such as sponsor mapping, phase classification, geographic signal (US vs EU/ROW), enrollment size, timing, and disease cluster assignment.
 
-The output is a filtered and ranked set of trials, segmented into:
-- a core opportunity set (high-scoring, near-term entry points)
-- a Phase 3 watchlist (large, late-stage programs with strategic relevance)
-- and optional side streams (e.g. neuro, cell therapy)
+On top of this structured dataset, a configurable scoring engine ranks each trial using a weighted model. The model combines sponsor relevance, development stage, operational status, scale, geography, and textual signals such as biomarker or mechanistic language extracted from titles, descriptions, and outcomes.
 
-Crucially, the system is parameterized by account list and geography (Domestic vs International), allowing direct comparison of opportunity density across teams, accounts, and regions.
+The scoring logic can be switched between different commercial lenses:
+- Clinical Scale
+- Discovery & Translational
 
-Atlas Radar is not a tool replacement but a signal-generation layer: it transforms unstructured clinical activity into a small set of prioritized entry points that can then be linked to real decision-makers via existing tools. Reach out to Helmut v. Keyserling
+The output is a filtered and ranked set of trials segmented into:
+- Metabolic Core
+- Neuro / Cell Therapy
+- Phase 3 Watchlist
+
+Atlas Radar is not a CRM replacement. It is a signal-generation layer that transforms unstructured clinical activity into a prioritized opportunity set.
 """)
+
 st.caption("ClinicalTrials.gov trigger radar for Domestic Sales (US) and International Sales (EU/ROW).")
 
 mode = st.selectbox(
@@ -770,7 +920,7 @@ run = st.button("Run Atlas Radar", type="primary", use_container_width=True)
 
 if run:
     with st.spinner("Running Atlas Radar... this can take a little while on first load."):
-        full_df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary = fetch_trials(mode)
+        full_df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df = fetch_trials(mode, logic)
 
     st.subheader("Summary")
     c1, c2, c3, c4 = st.columns(4)
@@ -779,6 +929,17 @@ if run:
     c3.metric("Neuro / Cell therapy", len(neuro_celltherapy))
     c4.metric("Phase 3 watchlist", len(phase3_watchlist))
 
+    st.markdown(
+        """
+        <div style="margin-top: 8px; margin-bottom: 12px;">
+            <span style="background:#b91c1c;color:white;padding:4px 8px;border-radius:6px;margin-right:8px;">Hot = 8.0–10.0</span>
+            <span style="background:#d97706;color:white;padding:4px 8px;border-radius:6px;margin-right:8px;">Warm = 5.5–7.9</span>
+            <span style="background:#166534;color:white;padding:4px 8px;border-radius:6px;">Watch = 0.0–5.4</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
     st.markdown("---")
 
     tab1, tab2, tab3, tab4 = st.tabs(
@@ -786,7 +947,18 @@ if run:
     )
 
     with tab1:
-        st.dataframe(metabolic_core, use_container_width=True, hide_index=True)
+        display_df = prepare_display_df(metabolic_core)
+        st.dataframe(
+            style_score_table(display_df),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
+                "TriggerScore": st.column_config.NumberColumn("Raw Score", format="%d"),
+                "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
+                "StartYear": st.column_config.NumberColumn("Start Year", format="%d"),
+            }
+        )
         df_download_button(
             metabolic_core,
             f"atlas_radar_{mode.lower()}_metabolic_core.csv",
@@ -794,7 +966,18 @@ if run:
         )
 
     with tab2:
-        st.dataframe(neuro_celltherapy, use_container_width=True, hide_index=True)
+        display_df = prepare_display_df(neuro_celltherapy)
+        st.dataframe(
+            style_score_table(display_df),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
+                "TriggerScore": st.column_config.NumberColumn("Raw Score", format="%d"),
+                "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
+                "StartYear": st.column_config.NumberColumn("Start Year", format="%d"),
+            }
+        )
         df_download_button(
             neuro_celltherapy,
             f"atlas_radar_{mode.lower()}_neuro_celltherapy.csv",
@@ -802,7 +985,18 @@ if run:
         )
 
     with tab3:
-        st.dataframe(phase3_watchlist, use_container_width=True, hide_index=True)
+        display_df = prepare_display_df(phase3_watchlist)
+        st.dataframe(
+            style_score_table(display_df),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
+                "TriggerScore": st.column_config.NumberColumn("Raw Score", format="%d"),
+                "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
+                "StartYear": st.column_config.NumberColumn("Start Year", format="%d"),
+            }
+        )
         df_download_button(
             phase3_watchlist,
             f"atlas_radar_{mode.lower()}_phase3_watchlist.csv",
@@ -810,7 +1004,13 @@ if run:
         )
 
     with tab4:
+        st.write("Debug summary")
         st.dataframe(debug_summary, use_container_width=True, hide_index=True)
+
+        if not error_df.empty:
+            st.write("Request errors")
+            st.dataframe(error_df, use_container_width=True, hide_index=True)
+
         df_download_button(
             full_df,
             f"atlas_radar_{mode.lower()}_full.csv",
