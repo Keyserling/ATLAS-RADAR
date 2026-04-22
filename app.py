@@ -860,7 +860,8 @@ def fetch_trials(mode: str, logic: str):
         (~df["ExclusionFlags"].fillna("").str.contains("off_focus", na=False)) &
         (df["PhaseBucket"].isin(ALLOWED_CORE_PHASES)) &
         (df["Status"].fillna("").str.upper().isin(ALLOWED_CORE_STATUSES)) &
-        (pd.to_numeric(df["Enrollment"], errors="coerce").fillna(0) >= MIN_ENROLLMENT_CORE) &
+        (pd.to_numeric(df["Enrollment"], errors="coerce").fillna(0) >= (MIN_SIDE_ENROLLMENT if logic == "Clinical Scale" else 20)) &
+(pd.to_numeric(df["Enrollment"], errors="coerce").fillna(0) <= (999999 if logic == "Clinical Scale" else 250)) &
         (pd.to_numeric(df["StartYear"], errors="coerce").fillna(0) >= MIN_CORE_START_YEAR) &
         (df["Cluster"] == "METABOLIC_CVRM")
     ].copy().sort_values(
@@ -869,7 +870,7 @@ def fetch_trials(mode: str, logic: str):
     ).reset_index(drop=True)
 
     neuro_celltherapy = df[
-        (df["LeadSponsorTargetAccounts"].fillna("") != "") &
+        (df["LeadSponsorTarget &
         (df["StudyType"].fillna("").str.upper() == "INTERVENTIONAL") &
         (df["LeadSponsorAcademic"] == False) &
         (~df["ExclusionFlags"].fillna("").str.contains("title_noise", na=False)) &
