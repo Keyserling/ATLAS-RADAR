@@ -1,7 +1,7 @@
 import io
 import re
 import time
-from typing import Dict, List, Tuple, Any
+from typing import Any, List, Tuple
 
 import requests
 import pandas as pd
@@ -197,30 +197,24 @@ PHARMA_TERMS = [
 DISPLAY_COLUMNS = [
     "Score_10",
     "ScoreBand",
-    "TriggerScore",
-    "LeadSponsorTargetAccounts",
-    "CollaboratorTargetAccounts",
-    "LeadSponsor",
-    "Title",
-    "Status",
-    "PhaseBucket",
-    "Enrollment",
-    "StartYear",
-    "Cluster",
-    "Countries",
     "NCT",
+    "Title",
+    "LeadSponsor",
+    "PhaseBucket",
+    "Status",
+    "Enrollment",
+    "Cluster",
     "PrimaryOutcome",
     "ScoreReasons",
     "ExclusionFlags",
-    "MatchedQueryTerm",
-    "Collaborators",
+    "MatchedQueryTerm"
 ]
 
 # =========================================================
 # HELPERS
 # =========================================================
 
-def safe_get(dct: dict, path: List[str], default=None):
+def safe_get(dct, path, default=None):
     cur = dct
     for k in path:
         if not isinstance(cur, dict) or k not in cur:
@@ -228,35 +222,32 @@ def safe_get(dct: dict, path: List[str], default=None):
         cur = cur[k]
     return cur
 
-def norm_text(text: Any) -> str:
-    return re.sub(r"\s+", " ", str(text or "").strip()).lower()
+def contains_any(text, keywords):
+    text = (text or "").lower()
+    return any(k.lower() in text for k in keywords)
 
-def contains_any(text: Any, keywords: List[str]) -> bool:
-    txt = norm_text(text)
-    return any(norm_text(k) in txt for k in keywords)
+def count_matches(text, keywords):
+    text = (text or "").lower()
+    return sum(1 for kw in keywords if kw.lower() in text)
 
-def count_matches(text: Any, keywords: List[str]) -> int:
-    txt = norm_text(text)
-    return sum(1 for kw in keywords if norm_text(kw) in txt)
-
-def parse_year(date_str: Any):
+def parse_year(date_str):
     if not date_str:
         return None
     m = re.search(r"(19|20)\d{2}", str(date_str))
     return int(m.group(0)) if m else None
 
-def get_sponsor_block(protocol: dict) -> dict:
+def get_sponsor_block(protocol):
     return protocol.get("sponsorCollaboratorsModule", {}) or {}
 
-def get_lead_sponsor(protocol: dict) -> str:
+def get_lead_sponsor(protocol):
     sponsor_mod = get_sponsor_block(protocol)
     return safe_get(sponsor_mod, ["leadSponsor", "name"], "") or ""
 
-def get_collaborators(protocol: dict) -> List[str]:
+def get_collaborators(protocol):
     sponsor_mod = get_sponsor_block(protocol)
     return [c.get("name", "") for c in (sponsor_mod.get("collaborators") or []) if c.get("name")]
 
-def get_sponsor_names(protocol: dict) -> List[str]:
+def get_sponsor_names(protocol):
     names = []
     lead = get_lead_sponsor(protocol)
     if lead:
@@ -264,7 +255,7 @@ def get_sponsor_names(protocol: dict) -> List[str]:
     names.extend(get_collaborators(protocol))
     return names
 
-def get_matching_accounts(protocol: dict) -> List[str]:
+def get_matching_accounts(protocol):
     sponsor_text = " | ".join(get_sponsor_names(protocol)).lower()
     matched = []
     for canonical_name, aliases in TARGET_ACCOUNT_ALIASES.items():
@@ -272,7 +263,7 @@ def get_matching_accounts(protocol: dict) -> List[str]:
             matched.append(canonical_name)
     return sorted(list(set(matched)))
 
-def lead_sponsor_matches_target(protocol: dict) -> List[str]:
+def lead_sponsor_matches_target(protocol):
     lead = get_lead_sponsor(protocol).lower()
     matches = []
     for canonical_name, aliases in TARGET_ACCOUNT_ALIASES.items():
@@ -280,7 +271,7 @@ def lead_sponsor_matches_target(protocol: dict) -> List[str]:
             matches.append(canonical_name)
     return sorted(list(set(matches)))
 
-def collaborator_matches_target(protocol: dict) -> List[str]:
+def collaborator_matches_target(protocol):
     collabs = " | ".join(get_collaborators(protocol)).lower()
     matches = []
     for canonical_name, aliases in TARGET_ACCOUNT_ALIASES.items():
@@ -288,7 +279,7 @@ def collaborator_matches_target(protocol: dict) -> List[str]:
             matches.append(canonical_name)
     return sorted(list(set(matches)))
 
-def get_country_summary(protocol: dict) -> List[str]:
+def get_country_summary(protocol):
     countries = set()
     locations = protocol.get("contactsLocationsModule", {}).get("locations", []) or []
     for loc in locations:
@@ -300,13 +291,13 @@ def get_country_summary(protocol: dict) -> List[str]:
             countries.add(alt_country.strip())
     return sorted(list(countries))
 
-def get_conditions_keywords_blob(protocol: dict) -> str:
+def get_conditions_keywords_blob(protocol):
     cond_mod = protocol.get("conditionsModule", {}) or {}
     conditions = cond_mod.get("conditions", []) or []
     keywords = cond_mod.get("keywords", []) or []
     return " | ".join([str(x) for x in list(conditions) + list(keywords)]).lower()
 
-def get_text_blob(protocol: dict) -> str:
+def get_text_blob(protocol):
     ident = protocol.get("identificationModule", {}) or {}
     desc = protocol.get("descriptionModule", {}) or {}
     outcomes = protocol.get("outcomesModule", {}) or {}
@@ -319,7 +310,7 @@ def get_text_blob(protocol: dict) -> str:
     ]
     return " ".join([str(x) for x in parts if x]).lower()
 
-def detect_cluster(protocol: dict) -> Tuple[str, int]:
+def detect_cluster(protocol):
     ck_blob = get_conditions_keywords_blob(protocol)
     text_blob = get_text_blob(protocol)
     combined = f"{ck_blob} | {text_blob}"
@@ -331,36 +322,32 @@ def detect_cluster(protocol: dict) -> Tuple[str, int]:
     neuro_support_hits = count_matches(combined, NEURO_SUPPORT)
     oncology_hits = count_matches(combined, ONCOLOGY_OTHER_TERMS)
 
-    hit_map = {
-        "METABOLIC_CVRM": metabolic_hits,
-        "CELL_THERAPY_CAR_T": cart_strong_hits + cart_support_hits,
-        "NEURO": neuro_strong_hits + neuro_support_hits,
-        "ONCOLOGY_OTHER": oncology_hits
-    }
+    if metabolic_hits >= 1:
+        return "METABOLIC_CVRM", metabolic_hits
+    if cart_strong_hits >= 1:
+        return "CELL_THERAPY_CAR_T", cart_strong_hits + cart_support_hits
+    if neuro_strong_hits >= 1:
+        return "NEURO", neuro_strong_hits + neuro_support_hits
+    if oncology_hits >= 1:
+        return "ONCOLOGY_OTHER", oncology_hits
+    return "OTHER", 0
 
-    best_cluster = max(hit_map, key=hit_map.get)
-    best_hits = hit_map[best_cluster]
-
-    if best_hits <= 0:
-        return "OTHER", 0
-    return best_cluster, best_hits
-
-def lead_sponsor_is_academic(lead_sponsor: str) -> bool:
+def lead_sponsor_is_academic(lead_sponsor):
     return contains_any(lead_sponsor or "", ACADEMIC_TERMS)
 
-def has_us_signal(countries: List[str]) -> bool:
+def has_us_signal(countries):
     c = set(countries or [])
     return "United States" in c
 
-def us_pure(countries: List[str]) -> bool:
+def us_pure(countries):
     c = set(countries or [])
     return len(c) > 0 and c == {"United States"}
 
-def has_eu_signal(countries: List[str]) -> bool:
+def has_eu_signal(countries):
     c = set(countries or [])
     return len(c.intersection(EU_COUNTRIES)) > 0
 
-def parse_phase_bucket(phases: str) -> str:
+def parse_phase_bucket(phases):
     p = (phases or "").upper()
     if "PHASE2" in p and "PHASE3" in p:
         return "PHASE2_3"
@@ -372,18 +359,7 @@ def parse_phase_bucket(phases: str) -> str:
         return "PHASE1"
     return "NONE"
 
-def get_score_band(score_10: float) -> str:
-    try:
-        s = float(score_10)
-    except Exception:
-        return "Watch"
-    if s >= 8.0:
-        return "Hot"
-    if s >= 5.5:
-        return "Warm"
-    return "Watch"
-
-def exclusion_flags(row: pd.Series, mode: str) -> str:
+def exclusion_flags(row, mode):
     flags = []
 
     title_blob = f"{row.get('Title','')} {row.get('OfficialTitle','')}".lower()
@@ -419,7 +395,38 @@ def exclusion_flags(row: pd.Series, mode: str) -> str:
 
     return "; ".join(flags)
 
-def trigger_score(row: pd.Series, mode: str, logic: str) -> Tuple[int, str]:
+def locked_late_penalty(row):
+    phase_bucket = row.get("PhaseBucket") or "NONE"
+    status = (row.get("Status") or "").upper()
+
+    try:
+        enrollment = int(float(row.get("Enrollment") or 0))
+    except Exception:
+        enrollment = 0
+
+    po = (row.get("PrimaryOutcome") or "").lower()
+    blob = f"{row.get('ConditionsKeywordsBlob','')} {row.get('TextBlob','')}".lower()
+
+    biomarker_signal = any(k in po for k in BIOMARKER_KEYWORDS) or any(k in blob for k in BIOMARKER_KEYWORDS)
+
+    penalty = 0
+    reasons = []
+
+    if phase_bucket == "PHASE3" and status == "ACTIVE_NOT_RECRUITING":
+        penalty -= 10
+        reasons.append("late/less accessible")
+
+    if phase_bucket == "PHASE3" and enrollment >= 1000 and not biomarker_signal:
+        penalty -= 8
+        reasons.append("large locked phase 3")
+
+    if phase_bucket == "PHASE2_3" and enrollment >= 1500 and status in {"RECRUITING", "ACTIVE_NOT_RECRUITING"} and not biomarker_signal:
+        penalty -= 5
+        reasons.append("scale-up rigidity")
+
+    return penalty, reasons
+
+def trigger_score(row, mode, logic):
     score = 0
     reasons = []
 
@@ -611,6 +618,10 @@ def trigger_score(row: pd.Series, mode: str, logic: str) -> Tuple[int, str]:
         score -= 20
         reasons.append("no EU signal")
 
+    late_penalty, penalty_reasons = locked_late_penalty(row)
+    score += late_penalty
+    reasons.extend(penalty_reasons)
+
     return max(score, 0), "; ".join(reasons)
 
 def dedupe_trials(df: pd.DataFrame) -> pd.DataFrame:
@@ -619,26 +630,38 @@ def dedupe_trials(df: pd.DataFrame) -> pd.DataFrame:
 
     work = df.copy()
 
-    work["DedupLeadMatch"] = work["LeadSponsorTargetAccounts"].fillna("").apply(lambda x: 1 if x.strip() else 0)
-    work["DedupCollabMatch"] = work["CollaboratorTargetAccounts"].fillna("").apply(lambda x: 1 if x.strip() else 0)
-    work["DedupTextLen"] = (
-        work["Title"].fillna("").str.len()
-        + work["OfficialTitle"].fillna("").str.len()
-        + work["TextBlob"].fillna("").str.len()
+    work["LeadMatchFlag"] = work["LeadSponsorTargetAccounts"].fillna("").apply(lambda x: 1 if str(x).strip() else 0)
+    work["ClusterHitsSort"] = pd.to_numeric(work["ClusterHits"], errors="coerce").fillna(0)
+    work["EnrollmentSort"] = pd.to_numeric(work["Enrollment"], errors="coerce").fillna(0)
+    work["TextLenSort"] = (
+        work["Title"].fillna("").astype(str).str.len() +
+        work["OfficialTitle"].fillna("").astype(str).str.len() +
+        work["PrimaryOutcome"].fillna("").astype(str).str.len()
     )
-    work["DedupEnrollment"] = pd.to_numeric(work["Enrollment"], errors="coerce").fillna(0)
 
     work = work.sort_values(
-        by=["NCT", "DedupLeadMatch", "DedupCollabMatch", "ClusterHits", "DedupTextLen", "DedupEnrollment"],
-        ascending=[True, False, False, False, False, False]
+        by=["NCT", "LeadMatchFlag", "ClusterHitsSort", "EnrollmentSort", "TextLenSort"],
+        ascending=[True, False, False, False, False]
     )
 
     work = work.drop_duplicates(subset=["NCT"], keep="first").copy()
+    work = work.drop(columns=["LeadMatchFlag", "ClusterHitsSort", "EnrollmentSort", "TextLenSort"])
 
-    work.drop(columns=["DedupLeadMatch", "DedupCollabMatch", "DedupTextLen", "DedupEnrollment"], inplace=True)
     return work.reset_index(drop=True)
 
-def style_score_table(df: pd.DataFrame) -> pd.io.formats.style.Styler:
+def get_score_band(score_10):
+    try:
+        score_10 = float(score_10)
+    except Exception:
+        return "Cold"
+
+    if score_10 >= 8.0:
+        return "Hot"
+    if score_10 >= 5.5:
+        return "Warm"
+    return "Cold"
+
+def style_score_table(df: pd.DataFrame):
     if df.empty:
         return df.style
 
@@ -648,29 +671,40 @@ def style_score_table(df: pd.DataFrame) -> pd.io.formats.style.Styler:
         except Exception:
             return ""
         if v >= 8.0:
-            return "background-color: #b91c1c; color: white;"
+            return "background-color: #b91c1c; color: white;"   # rot
         if v >= 5.5:
-            return "background-color: #d97706; color: white;"
-        return "background-color: #166534; color: white;"
+            return "background-color: #7c3aed; color: white;"   # lila
+        return "background-color: #1d4ed8; color: white;"       # blau
 
     def color_band(val):
-        if val == "Hot":
+        if str(val) == "Hot":
             return "background-color: #b91c1c; color: white;"
-        if val == "Warm":
-            return "background-color: #d97706; color: white;"
-        if val == "Watch":
-            return "background-color: #166534; color: white;"
+        if str(val) == "Warm":
+            return "background-color: #7c3aed; color: white;"
+        if str(val) == "Cold":
+            return "background-color: #1d4ed8; color: white;"
         return ""
 
-    styler = df.style.map(color_score, subset=["Score_10"]).map(color_band, subset=["ScoreBand"])
+    styler = df.style
+
+    if "Score_10" in df.columns:
+        styler = styler.map(color_score, subset=["Score_10"])
+    if "ScoreBand" in df.columns:
+        styler = styler.map(color_band, subset=["ScoreBand"])
+
     return styler
 
 def prepare_display_df(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
     cols = [c for c in DISPLAY_COLUMNS if c in df.columns]
-    remaining = [c for c in df.columns if c not in cols]
-    return df[cols + remaining].copy()
+    return df[cols].copy()
+
+def make_nct_link(nct):
+    nct = str(nct or "").strip()
+    if not nct:
+        return ""
+    return f"https://clinicaltrials.gov/study/{nct}"
 
 def df_download_button(df: pd.DataFrame, filename: str, label: str):
     csv_bytes = df.to_csv(index=False).encode("utf-8")
@@ -700,7 +734,7 @@ def fetch_trials(mode: str, logic: str):
             params = {
                 "query.term": term,
                 "pageSize": PAGE_SIZE,
-                "format": "json",
+                "format": "json"
             }
             if page_token:
                 params["pageToken"] = page_token
@@ -713,7 +747,7 @@ def fetch_trials(mode: str, logic: str):
                 request_errors.append({"QueryTerm": term, "Error": str(e)})
                 break
 
-            studies = data.get("studies", []) or []
+            studies = data.get("studies", [])
 
             for study in studies:
                 prot = study.get("protocolSection", {}) or {}
@@ -726,7 +760,6 @@ def fetch_trials(mode: str, logic: str):
                 collaborators = get_collaborators(prot)
                 countries = get_country_summary(prot)
                 cluster, cluster_hits = detect_cluster(prot)
-                text_blob = get_text_blob(prot)
 
                 primary_outcomes = outcomes_mod.get("primaryOutcomes", []) or []
                 primary_outcome = primary_outcomes[0].get("measure", "") if primary_outcomes else ""
@@ -735,6 +768,7 @@ def fetch_trials(mode: str, logic: str):
 
                 row = {
                     "NCT": ident.get("nctId", ""),
+                    "NCT_Link": make_nct_link(ident.get("nctId", "")),
                     "Title": ident.get("briefTitle", ""),
                     "OfficialTitle": ident.get("officialTitle", ""),
                     "LeadSponsor": lead_sponsor,
@@ -760,7 +794,7 @@ def fetch_trials(mode: str, logic: str):
                     "Cluster": cluster,
                     "ClusterHits": cluster_hits,
                     "ConditionsKeywordsBlob": get_conditions_keywords_blob(prot),
-                    "TextBlob": text_blob,
+                    "TextBlob": get_text_blob(prot)
                 }
                 all_rows.append(row)
 
@@ -809,6 +843,7 @@ def fetch_trials(mode: str, logic: str):
     df["ScoreReasons"] = [x[1] for x in scores]
 
     max_score = df["TriggerScore"].max()
+
     if max_score > 0:
         df["Score_10"] = (df["TriggerScore"] / max_score * 10).round(1)
     else:
@@ -892,16 +927,12 @@ Technically, it ingests trial records across a defined set of target sponsor acc
 
 On top of this structured dataset, a configurable scoring engine ranks each trial using a weighted model. The model combines sponsor relevance, development stage, operational status, scale, geography, and textual signals such as biomarker or mechanistic language extracted from titles, descriptions, and outcomes.
 
-The scoring logic can be switched between different commercial lenses:
-- Clinical Scale
-- Discovery & Translational
-
 The output is a filtered and ranked set of trials segmented into:
 - Metabolic Core
 - Neuro / Cell Therapy
 - Phase 3 Watchlist
 
-Atlas Radar is not a CRM replacement. It is a signal-generation layer that transforms unstructured clinical activity into a prioritized opportunity set.
+Atlas Radar is a signal-generation layer, not a CRM replacement.
 """)
 
 st.caption("ClinicalTrials.gov trigger radar for Domestic Sales (US) and International Sales (EU/ROW).")
@@ -919,7 +950,7 @@ logic = st.selectbox(
 run = st.button("Run Atlas Radar", type="primary", use_container_width=True)
 
 if run:
-    with st.spinner("Running Atlas Radar... this can take a little while on first load."):
+    with st.spinner("Running Atlas Radar..."):
         full_df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df = fetch_trials(mode, logic)
 
     st.subheader("Summary")
@@ -932,9 +963,9 @@ if run:
     st.markdown(
         """
         <div style="margin-top: 8px; margin-bottom: 12px;">
-            <span style="background:#b91c1c;color:white;padding:4px 8px;border-radius:6px;margin-right:8px;">Hot = 8.0–10.0</span>
-            <span style="background:#d97706;color:white;padding:4px 8px;border-radius:6px;margin-right:8px;">Warm = 5.5–7.9</span>
-            <span style="background:#166534;color:white;padding:4px 8px;border-radius:6px;">Watch = 0.0–5.4</span>
+            <span style="background:#b91c1c;color:white;padding:4px 8px;border-radius:6px;margin-right:8px;">Hot</span>
+            <span style="background:#7c3aed;color:white;padding:4px 8px;border-radius:6px;margin-right:8px;">Warm</span>
+            <span style="background:#1d4ed8;color:white;padding:4px 8px;border-radius:6px;">Cold</span>
         </div>
         """,
         unsafe_allow_html=True
@@ -953,10 +984,9 @@ if run:
             use_container_width=True,
             hide_index=True,
             column_config={
+                "NCT": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
                 "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
-                "TriggerScore": st.column_config.NumberColumn("Raw Score", format="%d"),
                 "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
-                "StartYear": st.column_config.NumberColumn("Start Year", format="%d"),
             }
         )
         df_download_button(
@@ -972,10 +1002,9 @@ if run:
             use_container_width=True,
             hide_index=True,
             column_config={
+                "NCT": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
                 "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
-                "TriggerScore": st.column_config.NumberColumn("Raw Score", format="%d"),
                 "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
-                "StartYear": st.column_config.NumberColumn("Start Year", format="%d"),
             }
         )
         df_download_button(
@@ -991,10 +1020,9 @@ if run:
             use_container_width=True,
             hide_index=True,
             column_config={
+                "NCT": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
                 "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
-                "TriggerScore": st.column_config.NumberColumn("Raw Score", format="%d"),
                 "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
-                "StartYear": st.column_config.NumberColumn("Start Year", format="%d"),
             }
         )
         df_download_button(
