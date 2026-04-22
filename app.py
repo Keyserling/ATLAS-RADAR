@@ -461,7 +461,7 @@ def trigger_score(row, mode, logic):
     status = (row.get("Status") or "").upper()
 
     try:
-        enrollment = int(float(row.get("Enrollment") or 0))
+        enrollment = int(row.get("Enrollment") or 0)
     except Exception:
         enrollment = 0
 
@@ -617,7 +617,6 @@ def trigger_score(row, mode, logic):
     if "no_eu_signal" in flags:
         score -= 20
         reasons.append("no EU signal")
-
 
     return max(score, 0), "; ".join(reasons)
 
