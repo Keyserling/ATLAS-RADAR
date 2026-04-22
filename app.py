@@ -618,9 +618,6 @@ def trigger_score(row, mode, logic):
         score -= 20
         reasons.append("no EU signal")
 
-    late_penalty, penalty_reasons = locked_late_penalty(row)
-    score += late_penalty
-    reasons.extend(penalty_reasons)
 
     return max(score, 0), "; ".join(reasons)
 
