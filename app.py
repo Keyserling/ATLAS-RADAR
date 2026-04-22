@@ -655,7 +655,12 @@ def fetch_trials(mode: str):
     df["ExclusionFlags"] = df.apply(lambda row: exclusion_flags(row, mode), axis=1)
     scores = df.apply(lambda row: trigger_score(row, mode, logic), axis=1)
     df["TriggerScore"] = [x[0] for x in scores]
-    df["ScoreReasons"] = [x[1] for x in scores]
+    styled_df = df.style.applymap(
+    lambda v: f"color: {score_color(v)}" if isinstance(v, (int, float)) else "",
+    subset=["Score_10"]
+)
+
+st.dataframe(styled_df)
 
     metabolic_core = df[
         (df["LeadSponsorTargetAccounts"].fillna("") != "") &
