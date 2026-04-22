@@ -870,7 +870,7 @@ def fetch_trials(mode: str, logic: str):
     ).reset_index(drop=True)
 
     neuro_celltherapy = df[
-        (df["LeadSponsorTarget &
+        (df["LeadSponsorTargetAccounts"].fillna("") != "") &
         (df["StudyType"].fillna("").str.upper() == "INTERVENTIONAL") &
         (df["LeadSponsorAcademic"] == False) &
         (~df["ExclusionFlags"].fillna("").str.contains("title_noise", na=False)) &
