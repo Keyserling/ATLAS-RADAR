@@ -655,10 +655,12 @@ def fetch_trials(mode: str):
     df["ExclusionFlags"] = df.apply(lambda row: exclusion_flags(row, mode), axis=1)
     scores = df.apply(lambda row: trigger_score(row, mode, logic), axis=1)
     df["TriggerScore"] = [x[0] for x in scores]
-    styled_df = df.style.applymap(
-    lambda v: f"color: {score_color(v)}" if isinstance(v, (int, float)) else "",
-    subset=["Score_10"]
-)
+max_score = df["TriggerScore"].max()
+
+if max_score > 0:
+    df["Score_10"] = (df["TriggerScore"] / max_score * 10).round(1)
+else:
+    df["Score_10"] = 0
 
 st.dataframe(styled_df)
 
