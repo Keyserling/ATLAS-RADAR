@@ -212,7 +212,6 @@ DISPLAY_COLUMNS = [
     "ExclusionFlags",
     "MatchedQueryTerm"
 ]
-]
 
 # =========================================================
 # HELPERS
