@@ -884,6 +884,7 @@ def fetch_trials(mode: str, logic: str):
     df["ScoreBand"] = df["Score_10"].apply(get_score_band)
     df["CommercialHypothesis"] = df.apply(assign_commercial_hypothesis, axis=1)
     df[["Who", "WhyNow", "WhyUs"]] = df.apply(assign_commercial_play, axis=1)
+    
     metabolic_core = df[
         (df["LeadSponsorTargetAccounts"].fillna("") != "") &
         (df["StudyType"].fillna("").str.upper() == "INTERVENTIONAL") &
