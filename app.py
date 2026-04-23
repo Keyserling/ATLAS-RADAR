@@ -722,6 +722,28 @@ def df_download_button(df: pd.DataFrame, filename: str, label: str):
 # FETCH
 # =========================================================
 
+def assign_commercial_hypothesis(row):
+    phase = row.get("PhaseBucket")
+    enrollment = row.get("Enrollment") or 0
+    status = (row.get("Status") or "").upper()
+    blob = f"{row.get('ConditionsKeywordsBlob','')} {row.get('TextBlob','')}".lower()
+
+    biomarker_signal = any(k in blob for k in [
+        "biomarker", "mechanism", "mechanistic", "stratification",
+        "precision medicine", "omics", "metabolomics", "lipidomics"
+    ])
+
+    if enrollment >= 150 and phase in {"PHASE2", "PHASE2_3"} and not biomarker_signal:
+        return "Stratification Risk"
+
+    if phase in {"PHASE1", "PHASE2"} and biomarker_signal:
+        return "Mechanistic Gap"
+
+    if phase in {"PHASE2_3", "PHASE3"} and enrollment >= 500 and status in {"RECRUITING", "ACTIVE_NOT_RECRUITING"}:
+        return "Late-stage Rigidity"
+
+    return "Unclear"
+    
 @st.cache_data(show_spinner=False, ttl=3600)
 def fetch_trials(mode: str, logic: str):
     all_rows = []
