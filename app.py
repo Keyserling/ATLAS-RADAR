@@ -1012,18 +1012,17 @@ st.title("Atlas Radar")
 
 with st.expander("What is Atlas Radar? (technical overview)"):
     st.markdown("""
-Atlas Radar 7.0 is an analytics layer built on top of publicly available ClinicalTrials.gov data.
+Atlas Radar is a signal-detection layer built on top of ClinicalTrials.gov, designed to identify commercially relevant clinical programs across key pharma accounts.
 
-Technically, it ingests trial records across a defined set of target sponsor accounts, deduplicates them, and enriches each record with derived features such as sponsor mapping, phase classification, geographic signal (US vs EU/ROW), enrollment size, timing, and disease cluster assignment.
+It systematically scans active trials, filters for Phase 2 / 3 interventional studies, and enriches each record with structured attributes such as sponsor relevance, geography, disease area, and study scale. Based on this, a scoring model ranks trials by their potential commercial importance.
 
-On top of this structured dataset, a configurable scoring engine ranks each trial using a weighted model. The model combines sponsor relevance, development stage, operational status, scale, geography, and textual signals such as biomarker or mechanistic language extracted from titles, descriptions, and outcomes.
+On top of the technical layer, Atlas Radar applies a simple commercial interpretation. Each trial is assigned a hypothesis (e.g. Mechanistic Gap, Stratification Risk, Expansion Opportunity), which is translated into actionable guidance:
 
-The output is a filtered and ranked set of trials segmented into:
-- Metabolic Core
-- Neuro / Cell Therapy
-- Phase 3 Watchlist
+who to target
+why engagement is timely
+how to position the conversation
 
-Atlas Radar is a signal-generation layer, not a tool replacement. Ask Helmut.
+The result is a focused set of prioritized trials that can be used as direct entry points for proactive outreach. Ask Helmut 
 """)
 
 st.caption("ClinicalTrials.gov trigger radar for Domestic Sales (US) and International Sales (EU/ROW).")
