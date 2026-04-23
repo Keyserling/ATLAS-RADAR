@@ -741,17 +741,14 @@ def assign_commercial_hypothesis(row):
 
     if phase in {"PHASE1", "PHASE2"} and biomarker_signal:
         return "Mechanistic Gap"
-
-    if phase in {"PHASE2_3", "PHASE3"} and enrollment >= 500:
-        return "Late-stage Rigidity"
-
+        
     if phase in {"PHASE2", "PHASE2_3"} and enrollment >= 150 and not biomarker_signal:
-    return "Stratification Risk"
+        return "Stratification Risk"
 
-if phase in {"PHASE2", "PHASE2_3"} and enrollment < 150:
-    return "Expansion Opportunity"
+    if phase in {"PHASE2", "PHASE2_3"} and enrollment < 150:
+        return "Expansion Opportunity"
 
-return "Unclear"
+    return "Unclear"
     
 @st.cache_data(show_spinner=False, ttl=3600)
 def fetch_trials(mode: str, logic: str):
