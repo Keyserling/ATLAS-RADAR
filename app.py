@@ -739,7 +739,7 @@ def assign_commercial_hypothesis(row):
 
 biomarker_signal = biomarker_hits >= 2
 
-    if phase in {"PHASE1", "PHASE2"} and biomarker_signal:
+if phase in {"PHASE1", "PHASE2"} and biomarker_signal:
         return "Mechanistic Gap"
 
     if phase in {"PHASE2_3", "PHASE3"} and enrollment >= 500:
