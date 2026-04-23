@@ -197,7 +197,6 @@ PHARMA_TERMS = [
 DISPLAY_COLUMNS = [
     "Score_10",
     "ScoreBand",
-    "NCT",
     "NCT_Link",
     "Title",
     "LeadSponsor",
