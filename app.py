@@ -746,9 +746,12 @@ def assign_commercial_hypothesis(row):
         return "Late-stage Rigidity"
 
     if phase in {"PHASE2", "PHASE2_3"} and enrollment >= 150 and not biomarker_signal:
-        return "Stratification Risk"
+    return "Stratification Risk"
 
-    return "Unclear"
+if phase in {"PHASE2", "PHASE2_3"} and enrollment < 150:
+    return "Expansion Opportunity"
+
+return "Unclear"
     
 @st.cache_data(show_spinner=False, ttl=3600)
 def fetch_trials(mode: str, logic: str):
