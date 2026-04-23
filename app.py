@@ -857,7 +857,7 @@ def fetch_trials(mode: str, logic: str):
         (~df["ExclusionFlags"].fillna("").str.contains("off_focus", na=False)) &
         (df["PhaseBucket"].isin(ALLOWED_CORE_PHASES)) &
         (df["Status"].fillna("").str.upper().isin(ALLOWED_CORE_STATUSES)) &
-        (pd.to_numeric(df["Enrollment"], errors="coerce").fillna(0) >= MIN_ENROLLMENT_SIDE) &
+        (pd.to_numeric(df["Enrollment"], errors="coerce").fillna(0) >= MIN_ENROLLMENT_CORE) &
         (pd.to_numeric(df["StartYear"], errors="coerce").fillna(0) >= MIN_CORE_START_YEAR) &
         (df["Cluster"] == "METABOLIC_CVRM")
     ].copy().sort_values(
