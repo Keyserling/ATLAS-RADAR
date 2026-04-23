@@ -726,6 +726,24 @@ def assign_commercial_hypothesis(row):
     phase = row.get("PhaseBucket")
     try:
         enrollment = int(float(row.get("Enrollment") or 0))
+        # 1. Mechanistic Gap
+if phase in {"PHASE1", "PHASE2"} and biomarker_signal:
+    return "Mechanistic Gap"
+
+# 2. Late-stage Rigidity
+if phase in {"PHASE2_3", "PHASE3"} and enrollment >= 500:
+    return "Late-stage Rigidity"
+
+# 3. Stratification Risk
+if phase in {"PHASE2", "PHASE2_3"} and enrollment >= 150 and not biomarker_signal:
+    return "Stratification Risk"
+
+# 4. Expansion Opportunity
+if phase in {"PHASE2", "PHASE2_3"} and enrollment < 150:
+    return "Expansion Opportunity"
+
+return "Unclear"
+
     except Exception:
         enrollment = 0
     status = (row.get("Status") or "").upper()
