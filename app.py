@@ -789,6 +789,25 @@ def assign_commercial_play(row):
         "Unclear"
     ])
 
+def build_outreach_hook(row):
+    h = row.get("CommercialHypothesis")
+    sponsor = row.get("LeadSponsor") or "your team"
+    phase = row.get("PhaseBucket") or "the program"
+
+    if h == "Mechanistic Gap":
+        return f"As {sponsor} advances this {phase} program, there may be an opportunity to add pathway-level depth around the emerging biology."
+
+    if h == "Stratification Risk":
+        return f"As {sponsor} scales this {phase} study, a key question may be whether responder heterogeneity could dilute the signal."
+
+    if h == "Expansion Opportunity":
+        return f"Before {sponsor} expands this {phase} program, there may be value in strengthening the biological rationale behind the early signal."
+
+    if h == "Late-stage Rigidity":
+        return f"Even at this stage, {sponsor} may still benefit from subgroup insight and retrospective differentiation around the readout."
+
+    return "Potential opportunity worth a closer look."
+    
 @st.cache_data(show_spinner=False, ttl=3600)
 def fetch_trials(mode: str, logic: str):
     all_rows = []
