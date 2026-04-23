@@ -196,19 +196,22 @@ PHARMA_TERMS = [
 
 DISPLAY_COLUMNS = [
     "Score_10",
-    "ScoreBand",
     "CommercialHypothesis",
+    "Who",
+    "WhyNow",
+    "WhyUs",
     "NCT_Link",
-    "Title",
     "LeadSponsor",
     "PhaseBucket",
     "Status",
     "Enrollment",
     "Cluster",
+    "Title",
     "PrimaryOutcome",
     "ScoreReasons",
     "ExclusionFlags",
     "MatchedQueryTerm"
+]
 ]
 
 # =========================================================
