@@ -751,7 +751,44 @@ def assign_commercial_hypothesis(row):
         return "Expansion Opportunity"
 
     return "Unclear"
-    
+
+def assign_commercial_play(row):
+    h = row.get("CommercialHypothesis")
+
+    if h == "Mechanistic Gap":
+        return pd.Series([
+            "Translational / Biomarker Lead",
+            "Mechanistic signal present, but biological depth still limited",
+            "Add pathway-level interpretation and retrospective metabolomics depth"
+        ])
+
+    if h == "Stratification Risk":
+        return pd.Series([
+            "Clinical Development / Medical Director",
+            "Large study without segmentation; responder dilution risk rising",
+            "Identify responders and de-risk signal loss before next step"
+        ])
+
+    if h == "Expansion Opportunity":
+        return pd.Series([
+            "Program Lead / Asset Owner",
+            "Small study approaching scale-up or portfolio decision",
+            "Strengthen biological confidence before expansion"
+        ])
+
+    if h == "Late-stage Rigidity":
+        return pd.Series([
+            "Medical Affairs / Lifecycle Lead",
+            "Core trial is advanced, but subgroup insight may still matter",
+            "Support post-hoc stratification and differentiation"
+        ])
+
+    return pd.Series([
+        "Unclear",
+        "Unclear",
+        "Unclear"
+    ])
+
 @st.cache_data(show_spinner=False, ttl=3600)
 def fetch_trials(mode: str, logic: str):
     all_rows = []
