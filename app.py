@@ -396,6 +396,7 @@ def exclusion_flags(row, mode):
     return "; ".join(flags)
 # UNUSED
 def locked_late_penalty(row):
+    pass
 def locked_late_penalty(row):
     phase_bucket = row.get("PhaseBucket") or "NONE"
     status = (row.get("Status") or "").upper()
@@ -623,6 +624,7 @@ def trigger_score(row, mode, logic):
     return max(score, 0), "; ".join(reasons)
 # UNUSED
 def dedupe_trials(df: pd.DataFrame):
+    pass
 def dedupe_trials(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
