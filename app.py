@@ -728,6 +728,7 @@ def assign_commercial_hypothesis(row):
         enrollment = int(float(row.get("Enrollment") or 0))
     except Exception:
         enrollment = 0
+
     status = (row.get("Status") or "").upper()
     blob = f"{row.get('ConditionsKeywordsBlob','')} {row.get('TextBlob','')}".lower()
 
@@ -736,38 +737,14 @@ def assign_commercial_hypothesis(row):
         "precision medicine", "omics", "metabolomics", "lipidomics"
     ])
 
-    # 1. Mechanistic Gap (stärker priorisieren)
     if phase in {"PHASE1", "PHASE2"} and biomarker_signal:
         return "Mechanistic Gap"
 
-    # 2. Late-stage Rigidity (klarer definieren)
     if phase in {"PHASE2_3", "PHASE3"} and enrollment >= 500:
         return "Late-stage Rigidity"
 
-    # 3. Stratification Risk (enger machen)
     if phase in {"PHASE2", "PHASE2_3"} and enrollment >= 150 and not biomarker_signal:
         return "Stratification Risk"
-
-    return "Unclear"
-    
-    phase = row.get("PhaseBucket")
-    enrollment = row.get("Enrollment") or 0
-    status = (row.get("Status") or "").upper()
-    blob = f"{row.get('ConditionsKeywordsBlob','')} {row.get('TextBlob','')}".lower()
-
-    biomarker_signal = any(k in blob for k in [
-        "biomarker", "mechanism", "mechanistic", "stratification",
-        "precision medicine", "omics", "metabolomics", "lipidomics"
-    ])
-
-    if enrollment >= 150 and phase in {"PHASE2", "PHASE2_3"} and not biomarker_signal:
-        return "Stratification Risk"
-
-    if phase in {"PHASE1", "PHASE2"} and biomarker_signal:
-        return "Mechanistic Gap"
-
-    if phase in {"PHASE2_3", "PHASE3"} and enrollment >= 500 and status in {"RECRUITING", "ACTIVE_NOT_RECRUITING"}:
-        return "Late-stage Rigidity"
 
     return "Unclear"
     
