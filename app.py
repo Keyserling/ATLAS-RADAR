@@ -732,10 +732,12 @@ def assign_commercial_hypothesis(row):
     status = (row.get("Status") or "").upper()
     blob = f"{row.get('ConditionsKeywordsBlob','')} {row.get('TextBlob','')}".lower()
 
-    biomarker_signal = any(k in blob for k in [
-        "biomarker", "mechanism", "mechanistic", "stratification",
-        "precision medicine", "omics", "metabolomics", "lipidomics"
-    ])
+    biomarker_hits = sum(k in blob for k in [
+    "biomarker", "mechanism", "mechanistic", "stratification",
+    "precision medicine", "omics", "metabolomics", "lipidomics"
+])
+
+biomarker_signal = biomarker_hits >= 2
 
     if phase in {"PHASE1", "PHASE2"} and biomarker_signal:
         return "Mechanistic Gap"
