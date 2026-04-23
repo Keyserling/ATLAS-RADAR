@@ -724,22 +724,22 @@ def df_download_button(df: pd.DataFrame, filename: str, label: str):
 
 def assign_commercial_hypothesis(row):
     phase = row.get("PhaseBucket")
+
     try:
         enrollment = int(float(row.get("Enrollment") or 0))
     except Exception:
         enrollment = 0
 
-    status = (row.get("Status") or "").upper()
     blob = f"{row.get('ConditionsKeywordsBlob','')} {row.get('TextBlob','')}".lower()
 
     biomarker_hits = sum(k in blob for k in [
-    "biomarker", "mechanism", "mechanistic", "stratification",
-    "precision medicine", "omics", "metabolomics", "lipidomics"
-])
+        "biomarker", "mechanism", "mechanistic", "stratification",
+        "precision medicine", "omics", "metabolomics", "lipidomics"
+    ])
 
-biomarker_signal = biomarker_hits >= 2
+    biomarker_signal = biomarker_hits >= 2
 
-if phase in {"PHASE1", "PHASE2"} and biomarker_signal:
+    if phase in {"PHASE1", "PHASE2"} and biomarker_signal:
         return "Mechanistic Gap"
 
     if phase in {"PHASE2_3", "PHASE3"} and enrollment >= 500:
