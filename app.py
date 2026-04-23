@@ -982,7 +982,7 @@ if run:
             use_container_width=True,
             hide_index=True,
             column_config={
-                "NCT": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
+                "NCT_Link": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
                 "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
                 "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
             }
@@ -1000,7 +1000,7 @@ if run:
             use_container_width=True,
             hide_index=True,
             column_config={
-                "NCT": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
+                "NCT_Link": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
                 "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
                 "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
             }
@@ -1018,7 +1018,7 @@ if run:
             use_container_width=True,
             hide_index=True,
             column_config={
-                "NCT": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
+                "NCT_Link": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
                 "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
                 "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
             }
