@@ -1008,7 +1008,12 @@ def fetch_trials(mode: str, logic: str):
 # UI
 # =========================================================
 
-st.title("Atlas Radar")
+st.markdown("""
+<div style="padding:16px;border-radius:14px;background:#0f172a;color:white;margin-bottom:16px;">
+  <h1 style="margin-bottom:4px;">🛰️ Atlas Radar V8.0</h1>
+  <p style="margin:0;color:#cbd5e1;">ClinicalTrials.gov signal radar for commercial entry points</p>
+</div>
+""", unsafe_allow_html=True)
 
 with st.expander("What is Atlas Radar? (technical overview)"):
     st.markdown("""
