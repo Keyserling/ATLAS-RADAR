@@ -747,9 +747,9 @@ def assign_commercial_hypothesis(row):
         
     if phase in {"PHASE2", "PHASE2_3"} and enrollment >= 150:
         if biomarker_hits == 0:
-        return "Blind Scale Risk"
+            return "Blind Scale Risk"
         if biomarker_hits == 1:
-        return "Weak Stratification"
+            return "Weak Stratification"
 
     if phase in {"PHASE2", "PHASE2_3"} and enrollment < 150:
         return "Expansion Opportunity"
