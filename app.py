@@ -457,7 +457,8 @@ def trigger_score(row, mode, logic):
         if row.get("EU_SIGNAL"):
             score += 15
             reasons.append("EU signal")
-        countries = {c.strip() for c in (row.get("Countries") or "").split(",") if c.strip()}
+
+        countries = {c.strip() for c in (row.get("Countries") or "").split(";") if c.strip()}
         if countries.intersection(DACH_UK_PRIORITY):
             score += 8
             reasons.append("DACH/UK")
@@ -468,7 +469,7 @@ def trigger_score(row, mode, logic):
 
     try:
         enrollment = int(float(row.get("Enrollment") or 0))
-    except Exception:
+    except:
         enrollment = 0
 
     sy = row.get("StartYear")
@@ -476,15 +477,15 @@ def trigger_score(row, mode, logic):
     blob = f"{row.get('ConditionsKeywordsBlob','')} {row.get('TextBlob','')}".lower()
     title_blob = f"{row.get('Title','')} {row.get('OfficialTitle','')}".lower()
 
-biomarker_signal = any(k in po for k in BIOMARKER_KEYWORDS) or any(k in blob for k in BIOMARKER_KEYWORDS)
+    biomarker_signal = any(k in po for k in BIOMARKER_KEYWORDS) or any(k in blob for k in BIOMARKER_KEYWORDS)
 
-if biomarker_signal:
-    score += 6
-    reasons.append("biomarker presence")
-else:
-    score -= 4
-    reasons.append("no biomarker layer")
-    
+    if biomarker_signal:
+        score += 6
+        reasons.append("biomarker presence")
+    else:
+        score -= 4
+        reasons.append("no biomarker layer")
+
     if logic == "Clinical Scale":
         if phase_bucket == "PHASE2_3":
             score += 22
@@ -579,21 +580,22 @@ else:
             score += 3
             reasons.append("smaller cohort acceptable")
 
-        translational_keywords = [
-            "biomarker", "biomarkers", "pharmacodynamic", "exploratory",
-            "target engagement", "mechanism", "mechanistic", "stratification",
-            "patient stratification", "precision medicine", "omics",
-            "metabolomics", "lipidomics", "signature", "profiling",
-            "proof of concept", "proof-of-concept"
-        ]
+    translational_keywords = [
+        "biomarker", "biomarkers", "pharmacodynamic", "exploratory",
+        "target engagement", "mechanism", "mechanistic", "stratification",
+        "patient stratification", "precision medicine", "omics",
+        "metabolomics", "lipidomics", "signature", "profiling",
+        "proof of concept", "proof-of-concept"
+    ]
 
-        kw_hits = sum(1 for k in translational_keywords if k in blob or k in po or k in title_blob)
-        if kw_hits >= 3:
-            score += 18
-            reasons.append("strong translational language")
-        elif kw_hits >= 1:
-            score += 10
-            reasons.append("translational language")
+    kw_hits = sum(1 for k in translational_keywords if k in blob or k in po or k in title_blob)
+
+    if kw_hits >= 3:
+        score += 18
+        reasons.append("strong translational language")
+    elif kw_hits >= 1:
+        score += 10
+        reasons.append("translational language")
 
     if sy:
         if sy >= 2025:
@@ -610,6 +612,7 @@ else:
             reasons.append("old start")
 
     flags = row.get("ExclusionFlags") or ""
+
     if "title_noise" in flags:
         score -= 20
         reasons.append("title noise")
@@ -626,8 +629,7 @@ else:
         score -= 20
         reasons.append("no EU signal")
 
-
-        return max(score, 0), "; ".join(reasons)
+    return max(score, 0), "; ".join(reasons)
 # UNUSED
 def dedupe_trials(df: pd.DataFrame):
     pass
