@@ -483,7 +483,7 @@ def trigger_score(row, mode, logic):
         score += 6
         reasons.append("biomarker presence")
     else:
-        score -= 4
+        score -= 10
         reasons.append("no biomarker layer")
 
     if logic == "Clinical Scale":
