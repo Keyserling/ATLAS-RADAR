@@ -627,7 +627,7 @@ else:
         reasons.append("no EU signal")
 
 
-    return max(score, 0), "; ".join(reasons)
+        return max(score, 0), "; ".join(reasons)
 # UNUSED
 def dedupe_trials(df: pd.DataFrame):
     pass
