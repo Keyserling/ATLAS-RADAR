@@ -524,7 +524,7 @@ def trigger_score(row, mode, logic):
             reasons.append("not yet recruiting")
 
         if enrollment >= 500:
-            score += 8
+            score += 4
             reasons.append("enrollment >=500")
         elif enrollment >= 150:
             score += 5
