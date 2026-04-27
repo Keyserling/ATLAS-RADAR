@@ -476,6 +476,15 @@ def trigger_score(row, mode, logic):
     blob = f"{row.get('ConditionsKeywordsBlob','')} {row.get('TextBlob','')}".lower()
     title_blob = f"{row.get('Title','')} {row.get('OfficialTitle','')}".lower()
 
+biomarker_signal = any(k in po for k in BIOMARKER_KEYWORDS) or any(k in blob for k in BIOMARKER_KEYWORDS)
+
+if biomarker_signal:
+    score += 6
+    reasons.append("biomarker presence")
+else:
+    score -= 4
+    reasons.append("no biomarker layer")
+    
     if logic == "Clinical Scale":
         if phase_bucket == "PHASE2_3":
             score += 22
@@ -599,13 +608,6 @@ def trigger_score(row, mode, logic):
         elif sy < 2021:
             score -= 10
             reasons.append("old start")
-
-    if any(k in po for k in BIOMARKER_KEYWORDS):
-        score += 5
-        reasons.append("primary biomarker signal")
-    elif any(k in blob for k in BIOMARKER_KEYWORDS):
-        score += 3
-        reasons.append("biomarker language")
 
     flags = row.get("ExclusionFlags") or ""
     if "title_noise" in flags:
