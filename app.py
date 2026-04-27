@@ -746,9 +746,9 @@ def assign_commercial_hypothesis(row):
         return "Mechanistic Gap"
         
     if phase in {"PHASE2", "PHASE2_3"} and enrollment >= 150:
-    if biomarker_hits == 0:
+        if biomarker_hits == 0:
         return "Blind Scale Risk"
-    if biomarker_hits == 1:
+        if biomarker_hits == 1:
         return "Weak Stratification"
 
     if phase in {"PHASE2", "PHASE2_3"} and enrollment < 150:
