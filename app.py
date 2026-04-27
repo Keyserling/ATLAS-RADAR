@@ -765,7 +765,20 @@ def assign_commercial_play(row):
             "Mechanistic signal present, but biological depth still limited",
             "Add pathway-level interpretation and retrospective metabolomics depth"
         ])
+        
+    if h == "Blind Scale Risk":
+        return pd.Series([
+            "Clinical Development / Medical Director",
+            "Large study scaling without biomarker or responder definition",
+            "Introduce stratification layer to prevent signal dilution at scale"
+    ])
 
+if h == "Weak Stratification":
+    return pd.Series([
+        "Translational Medicine / Biomarker Lead",
+        "Initial stratification signals present but not robust",
+        "Strengthen biological signal and sharpen responder definition"
+    ])
     if h == "Stratification Risk":
         return pd.Series([
             "Clinical Development / Medical Director",
