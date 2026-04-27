@@ -773,8 +773,8 @@ def assign_commercial_play(row):
             "Introduce stratification layer to prevent signal dilution at scale"
     ])
 
-if h == "Weak Stratification":
-    return pd.Series([
+    if h == "Weak Stratification":
+        return pd.Series([
         "Translational Medicine / Biomarker Lead",
         "Initial stratification signals present but not robust",
         "Strengthen biological signal and sharpen responder definition"
