@@ -813,7 +813,13 @@ def build_outreach_hook(row):
 
     if h == "Mechanistic Gap":
         return f"As {sponsor} advances this {phase} program, there may be an opportunity to add pathway-level depth around the emerging biology."
+        
+    if h == "Blind Scale Risk":
+        return f"As {sponsor} scales this {phase} study, the lack of a clear responder or biomarker layer may increase the risk of signal dilution."
 
+    if h == "Weak Stratification":
+        return f"As {sponsor} advances this {phase} program, early stratification signals may benefit from deeper biological resolution."
+        
     if h == "Stratification Risk":
         return f"As {sponsor} scales this {phase} study, a key question may be whether responder heterogeneity could dilute the signal."
 
