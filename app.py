@@ -1115,7 +1115,7 @@ else:
     )
 
     with tab1:
-        display_df = prepare_display_df(display_df)
+        display_df = prepare_display_df(full_df)
         st.dataframe(
             style_score_table(display_df),
             use_container_width=True,
