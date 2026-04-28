@@ -1081,7 +1081,7 @@ if run:
     display_df = neuro_celltherapy[neuro_celltherapy["Cluster"] == "CELL_THERAPY_CAR_T"]
 
 else:
-    display_df = prepare_display_df(metabolic_core)
+    display_df = pd.DataFrame()
     
     st.subheader("Summary")
     st.write("Domain:", domain)
