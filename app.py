@@ -951,8 +951,8 @@ elif domain == "Immunology / Inflammation":
 
 elif domain == "Oncology / IO":
     df = df[df["Cluster"] == "ONCOLOGY_OTHER"]
-if mode == "Domestic":
-    df = df[df["US_SIGNAL"] == True].copy()
+    if mode == "Domestic":
+        df = df[df["US_SIGNAL"] == True].copy()
     else:
         df = df[df["EU_SIGNAL"] == True].copy()
 
