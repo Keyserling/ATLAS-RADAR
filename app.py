@@ -1092,7 +1092,7 @@ if st.button("Clear cache"):
     st.cache_data.clear()
 if run:
     with st.spinner("Running Atlas Radar..."):
-        full_df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df = fetch_trials(mode, logic)
+        full_df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df = fetch_trials(mode, logic, domain)
 
     st.subheader("Summary")
     c1, c2, c3, c4 = st.columns(4)
