@@ -935,8 +935,24 @@ def fetch_trials(mode: str, logic: str):
 
     df = df.groupby("NCT", as_index=False).first()
 
-    if mode == "Domestic":
-        df = df[df["US_SIGNAL"] == True].copy()
+    # Domain filter
+if domain == "Metabolic / CVRM":
+    df = df[df["Cluster"] == "METABOLIC_CVRM"]
+
+elif domain == "Neurology":
+    df = df[df["Cluster"] == "NEURO"]
+
+elif domain == "Cell Therapy":
+    df = df[df["Cluster"] == "CELL_THERAPY_CAR_T"]
+
+elif domain == "Immunology / Inflammation":
+    # placeholder: aktuell noch nichts → wird später definiert
+    pass
+
+elif domain == "Oncology / IO":
+    df = df[df["Cluster"] == "ONCOLOGY_OTHER"]
+if mode == "Domestic":
+    df = df[df["US_SIGNAL"] == True].copy()
     else:
         df = df[df["EU_SIGNAL"] == True].copy()
 
