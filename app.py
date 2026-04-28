@@ -1077,13 +1077,7 @@ if st.button("Clear cache"):
 if run:
     with st.spinner("Running Atlas Radar..."):
         full_df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df = fetch_trials(mode, logic)
-        if domain == "Metabolic / CVRM":
-    display_df = metabolic_core
-
-elif domain == "Neurology":
-    display_df = neuro_celltherapy[neuro_celltherapy["Cluster"] == "NEURO"]
-
-elif domain == "Cell Therapy":
+        
     display_df = neuro_celltherapy[neuro_celltherapy["Cluster"] == "CELL_THERAPY_CAR_T"]
 
 else:
