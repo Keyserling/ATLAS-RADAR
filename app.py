@@ -453,7 +453,7 @@ def locked_late_penalty(row):
 
     return penalty, reasons
 
-def trigger_score(row, mode, logic):
+def trigger_score(row, mode, logic, controls):
     score = 0
     reasons = []
 
@@ -501,10 +501,10 @@ def trigger_score(row, mode, logic):
     biomarker_signal = any(k in po for k in BIOMARKER_KEYWORDS) or any(k in blob for k in BIOMARKER_KEYWORDS)
 
     if biomarker_signal:
-        score += 6
+        score += controls["biomarker_bonus"]
         reasons.append("biomarker presence")
     else:
-        score -= 16
+        score -= controls["no_biomarker_penalty"]
         reasons.append("no biomarker layer")
 
     if logic == "Clinical Scale":
@@ -548,7 +548,7 @@ def trigger_score(row, mode, logic):
             reasons.append("not yet recruiting")
 
         if enrollment >= 500:
-            score += 4
+            score += controls["large_enrollment_bonus"]
             reasons.append("enrollment >=500")
         elif enrollment >= 150:
             score += 5
@@ -556,7 +556,7 @@ def trigger_score(row, mode, logic):
 
     elif logic == "Discovery & Translational":
         if phase_bucket == "PHASE1":
-            score += 18
+            score += controls["early_phase_bonus"]
             reasons.append("phase 1 signal")
         elif phase_bucket == "PHASE2":
             score += 20
@@ -618,10 +618,10 @@ def trigger_score(row, mode, logic):
     kw_hits = sum(1 for k in translational_keywords if k in blob or k in po or k in title_blob)
 
     if kw_hits >= 3:
-        score += 18
+        score += controls["strong_translational_bonus"]
         reasons.append("strong translational language")
     elif kw_hits >= 1:
-        score += 10
+        score += controls["basic_translational_bonus"]
         reasons.append("translational language")
 
     if sy:
@@ -801,7 +801,7 @@ def assign_commercial_hypothesis(row):
         "precision medicine", "omics", "metabolomics", "lipidomics"
     ])
 
-    if phase in {"PHASE1", "PHASE2"} and biomarker_hits >= 1:
+    if phase in {"PHASE1", "PHASE2"} and biomarker_hits >= 2:
         return "Mechanistic Gap"
 
     if phase in {"PHASE2", "PHASE2_3"} and enrollment >= 150:
@@ -892,7 +892,8 @@ def build_outreach_hook(row):
     return "Potential opportunity worth a closer look."
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def fetch_trials(mode: str, logic: str):
+def fetch_trials(mode: str, logic: str, controls_tuple: tuple):
+    controls = dict(controls_tuple)
     all_rows = []
     request_errors = []
 
@@ -1007,7 +1008,7 @@ def fetch_trials(mode: str, logic: str):
         return df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), debug_summary, error_df
 
     df["ExclusionFlags"] = df.apply(lambda row: exclusion_flags(row, mode), axis=1)
-    scores = df.apply(lambda row: trigger_score(row, mode, logic), axis=1)
+    scores = df.apply(lambda row: trigger_score(row, mode, logic, controls), axis=1)
     df["TriggerScore"] = [x[0] for x in scores]
     df["ScoreReasons"] = [x[1] for x in scores]
 
@@ -1088,7 +1089,7 @@ def fetch_trials(mode: str, logic: str):
 
 st.markdown("""
 <div style="padding:16px;border-radius:14px;background:#0f172a;color:white;margin-bottom:16px;">
-  <h1 style="margin-bottom:4px;">🛰️ Helmuts Atlas Radar V8.2</h1>
+  <h1 style="margin-bottom:4px;">🛰️ Helmuts Atlas Radar V8.3</h1>
   <p style="margin:0;color:#cbd5e1;">ClinicalTrials.gov signal radar for commercial entry points</p>
 </div>
 """, unsafe_allow_html=True)
@@ -1121,6 +1122,32 @@ domain = st.selectbox(
     ["Metabolic / CVRM", "Neurology", "Cell Therapy", "Immunology / Inflammation", "Oncology / IO"]
 )
 
+with st.expander("Scoring mixer", expanded=False):
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+        no_biomarker_penalty = st.slider("No biomarker penalty", 0, 30, 16, 1)
+        biomarker_bonus = st.slider("Biomarker presence bonus", 0, 20, 6, 1)
+
+    with c2:
+        large_enrollment_bonus = st.slider("Large enrollment bonus", 0, 15, 4, 1)
+        early_phase_bonus = st.slider("Early phase bonus", 0, 30, 18, 1)
+
+    with c3:
+        strong_translational_bonus = st.slider("Strong translational language bonus", 0, 30, 18, 1)
+        basic_translational_bonus = st.slider("Basic translational language bonus", 0, 20, 10, 1)
+
+controls = {
+    "no_biomarker_penalty": no_biomarker_penalty,
+    "biomarker_bonus": biomarker_bonus,
+    "large_enrollment_bonus": large_enrollment_bonus,
+    "early_phase_bonus": early_phase_bonus,
+    "strong_translational_bonus": strong_translational_bonus,
+    "basic_translational_bonus": basic_translational_bonus,
+}
+
+controls_tuple = tuple(sorted(controls.items()))
+
 run = st.button("Run Atlas Radar", type="primary", use_container_width=True)
 
 if st.button("Clear cache"):
@@ -1128,7 +1155,7 @@ if st.button("Clear cache"):
 
 if run:
     with st.spinner("Running Atlas Radar..."):
-        full_df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df = fetch_trials(mode, logic)
+        full_df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df = fetch_trials(mode, logic, controls_tuple)
 
     selected_domain = build_domain_table(full_df, domain)
 
@@ -1138,6 +1165,12 @@ if run:
     c2.metric("Selected domain", len(selected_domain))
     c3.metric("Phase 3 watchlist", len(phase3_watchlist))
     c4.metric("Errors", len(error_df))
+
+    st.caption(
+        f"Mixer: no biomarker -{no_biomarker_penalty}, biomarker +{biomarker_bonus}, "
+        f"large enrollment +{large_enrollment_bonus}, early phase +{early_phase_bonus}, "
+        f"strong translational +{strong_translational_bonus}, basic translational +{basic_translational_bonus}"
+    )
 
     st.markdown(
         """
