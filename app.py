@@ -1077,7 +1077,18 @@ if st.button("Clear cache"):
 if run:
     with st.spinner("Running Atlas Radar..."):
         full_df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df = fetch_trials(mode, logic)
+        if domain == "Metabolic / CVRM":
+    display_df = metabolic_core
 
+elif domain == "Neurology":
+    display_df = neuro_celltherapy[neuro_celltherapy["Cluster"] == "NEURO"]
+
+elif domain == "Cell Therapy":
+    display_df = neuro_celltherapy[neuro_celltherapy["Cluster"] == "CELL_THERAPY_CAR_T"]
+
+else:
+    display_df = full_df
+    
     st.subheader("Summary")
     st.write("Domain:", domain)
     c1, c2, c3, c4 = st.columns(4)
@@ -1104,7 +1115,7 @@ if run:
     )
 
     with tab1:
-        display_df = prepare_display_df(metabolic_core)
+        display_df = prepare_display_df(display_df)
         st.dataframe(
             style_score_table(display_df),
             use_container_width=True,
