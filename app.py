@@ -844,20 +844,6 @@ def fetch_trials(mode: str, logic: str, domain: str):
 
     for term in PHARMA_TERMS:
         page_token = None
-                data = r.json()
-            except Exception as e:
-                request_errors.append({"QueryTerm": term, "Error": str(e)})
-                break
-
-            studies = data.get("studies", [])
-
-            for study in studies:
-                prot = study.get("protocolSection", {}) or {}
-                ident = prot.get("identificationModule", {}) or {}
-                design = prot.get("designModule", {}) or {}
-                status_mod = prot.get("statusModule", {}) or {}
-                outcomes_mod = prot.get("outcomesModule", {}) or {}
-
                 lead_sponsor = get_lead_sponsor(prot)
                 collaborators = get_collaborators(prot)
                 countries = get_country_summary(prot)
