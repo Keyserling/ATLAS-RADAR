@@ -1096,13 +1096,29 @@ st.markdown("""
 
 with st.expander("What is Atlas Radar? (technical overview)"):
     st.markdown("""
-Atlas Radar is a signal-detection layer built on top of ClinicalTrials.gov, designed to identify commercially relevant clinical programs across key pharma accounts.
+Atlas Radar is best used as a focused search tool for commercial entry points, not as a static list.
 
-It systematically scans active trials, filters for Phase 2 / 3 interventional studies, and enriches each record with structured attributes such as sponsor relevance, geography, disease area, and study scale. Based on this, a scoring model ranks trials by their potential commercial importance.
+Start by selecting your operating mode (Domestic vs. International) and the opportunity model (Clinical Scale vs. Discovery & Translational). These define the overall lens through which trials are evaluated.
 
-On top of the technical layer, Atlas Radar applies a simple commercial interpretation. Each trial is assigned a hypothesis (e.g. Mechanistic Gap, Blind Scale Risk, Weak Stratification, Expansion Opportunity), which is translated into actionable guidance: who to target, why engagement is timely, and how to position the conversation.
+Then use the mixer to actively shape what kind of opportunities you want to see:
 
-The current version adds disease-domain views for Metabolic/CVRM, Neurology, Cell Therapy, Immunology/Inflammation, and Oncology/IO. The goal is not one fixed truth, but a controlled radar that lets the team explore different commercial entry points.
+If you are looking for early, influenceable programs, increase Early entry and reduce Too late.
+If you want large, high-value trials, increase Big programs.
+If you are specifically targeting biology-driven discussions, increase Show biology and Translational depth.
+If you want to avoid programs that are scaling without clarity, increase No blind scale.
+
+Each adjustment does not add new trials — it re-ranks the same universe based on your commercial intent.
+
+As a result, Atlas Radar can be used in different modes:
+
+Early-entry scouting → high Early entry, high Show biology
+Trial rescue / de-risking → high No blind scale, moderate Big programs
+Strategic large deals → high Big programs, moderate Translational depth
+Scientific positioning → high Show biology and Translational depth
+
+The goal is not to find “all good trials”, but to surface the right trials for a specific commercial angle.
+
+Think of it as a radar, not a report.
 """)
 
 st.caption("ClinicalTrials.gov trigger radar for Domestic Sales (US) and International Sales (EU/ROW).")
