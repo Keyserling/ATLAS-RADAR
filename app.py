@@ -836,7 +836,6 @@ def build_outreach_hook(row):
     return "Potential opportunity worth a closer look."
     
 @st.cache_data(show_spinner=False, ttl=3600)
-
 def fetch_trials(mode: str, logic: str, domain: str):
     all_rows = []
     request_errors = []
@@ -845,19 +844,6 @@ def fetch_trials(mode: str, logic: str, domain: str):
 
     for term in PHARMA_TERMS:
         page_token = None
-
-        for _ in range(MAX_PAGES_PER_QUERY):
-            params = {
-                "query.term": term,
-                "pageSize": PAGE_SIZE,
-                "format": "json"
-            }
-            if page_token:
-                params["pageToken"] = page_token
-
-            try:
-                r = session.get(BASE_URL, params=params, timeout=TIMEOUT)
-                r.raise_for_status()
                 data = r.json()
             except Exception as e:
                 request_errors.append({"QueryTerm": term, "Error": str(e)})
@@ -1094,7 +1080,6 @@ if st.button("Clear cache"):
 if run:
     with st.spinner("Running Atlas Radar..."):
         full_df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df = fetch_trials(mode, logic, domain)
-
     st.subheader("Summary")
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Full", len(full_df))
