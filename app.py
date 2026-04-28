@@ -633,27 +633,27 @@ def trigger_score(row, mode, logic):
 # UNUSED
 def dedupe_trials(df: pd.DataFrame):
     pass
-def dedupe_trials(df: pd.DataFrame) -> pd.DataFrame:
-    if df.empty:
-        return df
-
-    work = df.copy()
-
-    work["LeadMatchFlag"] = work["LeadSponsorTargetAccounts"].fillna("").apply(lambda x: 1 if str(x).strip() else 0)
-    work["ClusterHitsSort"] = pd.to_numeric(work["ClusterHits"], errors="coerce").fillna(0)
-    work["EnrollmentSort"] = pd.to_numeric(work["Enrollment"], errors="coerce").fillna(0)
-    work["TextLenSort"] = (
-        work["Title"].fillna("").astype(str).str.len() +
-        work["OfficialTitle"].fillna("").astype(str).str.len() +
-        work["PrimaryOutcome"].fillna("").astype(str).str.len()
-    )
-
-    work = work.sort_values(
-        by=["NCT", "LeadMatchFlag", "ClusterHitsSort", "EnrollmentSort", "TextLenSort"],
-        ascending=[True, False, False, False, False]
-    )
-
-    work = work.drop_duplicates(subset=["NCT"], keep="first").copy()
+    def dedupe_trials(df: pd.DataFrame) -> pd.DataFrame:
+        if df.empty:
+            return df
+    
+        work = df.copy()
+    
+        work["LeadMatchFlag"] = work["LeadSponsorTargetAccounts"].fillna("").apply(lambda x: 1 if str(x).strip() else 0)
+        work["ClusterHitsSort"] = pd.to_numeric(work["ClusterHits"], errors="coerce").fillna(0)
+        work["EnrollmentSort"] = pd.to_numeric(work["Enrollment"], errors="coerce").fillna(0)
+        work["TextLenSort"] = (
+            work["Title"].fillna("").astype(str).str.len() +
+            work["OfficialTitle"].fillna("").astype(str).str.len() +
+            work["PrimaryOutcome"].fillna("").astype(str).str.len()
+        )
+    
+        work = work.sort_values(
+            by=["NCT", "LeadMatchFlag", "ClusterHitsSort", "EnrollmentSort", "TextLenSort"],
+            ascending=[True, False, False, False, False]
+        )
+    
+        work = work.drop_duplicates(subset=["NCT"], keep="first").copy()
     work = work.drop(columns=["LeadMatchFlag", "ClusterHitsSort", "EnrollmentSort", "TextLenSort"])
 
     return work.reset_index(drop=True)
