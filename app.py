@@ -1089,8 +1089,9 @@ def fetch_trials(mode: str, logic: str, controls_tuple: tuple):
 
 st.markdown("""
 <div style="padding:16px;border-radius:14px;background:#0f172a;color:white;margin-bottom:16px;">
-  <h1 style="margin-bottom:4px;">🛰️ Helmuts Atlas Radar V8.3</h1>
-  <p style="margin:0;color:#cbd5e1;">ClinicalTrials.gov signal radar for commercial entry points</p>
+  <h1 style="margin-bottom:4px;">🛰️ Atlas Radar</h1>
+  <p style="margin:0;color:#cbd5e1;">by Helmut von Keyserling</p>
+  <p style="margin:0;color:#94a3b8;font-size:12px;">ClinicalTrials.gov signal radar for commercial entry points</p>
 </div>
 """, unsafe_allow_html=True)
 
