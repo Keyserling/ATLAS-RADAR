@@ -801,7 +801,7 @@ def assign_commercial_hypothesis(row):
         "precision medicine", "omics", "metabolomics", "lipidomics"
     ])
 
-    if phase in {"PHASE1", "PHASE2"} and biomarker_hits >= 2:
+    if phase in {"PHASE1", "PHASE2"} and biomarker_hits >= 1:
         return "Mechanistic Gap"
 
     if phase in {"PHASE2", "PHASE2_3"} and enrollment >= 150:
