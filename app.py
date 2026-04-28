@@ -956,17 +956,17 @@ elif domain == "Oncology / IO":
     else:
         df = df[df["EU_SIGNAL"] == True].copy()
 
-    if df.empty:
-        debug_rows = [
-            {"Metric": "full_rows", "Value": 0},
-            {"Metric": "metabolic_core_rows", "Value": 0},
-            {"Metric": "neuro_celltherapy_rows", "Value": 0},
-            {"Metric": "phase3_watchlist_rows", "Value": 0},
-            {"Metric": "request_errors", "Value": len(request_errors)},
-        ]
-        debug_summary = pd.DataFrame(debug_rows)
-        error_df = pd.DataFrame(request_errors)
-        return df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), debug_summary, error_df
+        if df.empty:
+            debug_rows = [
+                {"Metric": "full_rows", "Value": 0},
+                {"Metric": "metabolic_core_rows", "Value": 0},
+                {"Metric": "neuro_celltherapy_rows", "Value": 0},
+                {"Metric": "phase3_watchlist_rows", "Value": 0},
+                {"Metric": "request_errors", "Value": len(request_errors)},
+            ]
+            debug_summary = pd.DataFrame(debug_rows)
+            error_df = pd.DataFrame(request_errors)
+            return df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), debug_summary, error_df
 
     df["ExclusionFlags"] = df.apply(lambda row: exclusion_flags(row, mode), axis=1)
     scores = df.apply(lambda row: trigger_score(row, mode, logic), axis=1)
