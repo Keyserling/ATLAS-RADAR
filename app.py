@@ -1079,6 +1079,7 @@ if run:
         full_df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df = fetch_trials(mode, logic)
 
     st.subheader("Summary")
+    st.write("Domain:", domain)
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Full", len(full_df))
     c2.metric("Metabolic core", len(metabolic_core))
