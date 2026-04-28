@@ -1067,7 +1067,10 @@ logic = st.selectbox(
     "Select Opportunity Model",
     ["Clinical Scale", "Discovery & Translational"]
 )
-
+domain = st.selectbox(
+    "Select Domain",
+    ["Metabolic / CVRM", "Neurology", "Cell Therapy"]
+)
 run = st.button("Run Atlas Radar", type="primary", use_container_width=True)
 if st.button("Clear cache"):
     st.cache_data.clear()
