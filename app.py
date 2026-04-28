@@ -1,3 +1,4 @@
+
 import io
 import re
 import time
@@ -110,6 +111,16 @@ NEURO_SUPPORT = [
     "brain biomarker", "disease progression"
 ]
 
+IMMUNOLOGY_INFLAMMATION_TERMS = [
+    "autoimmune", "autoimmunity", "inflammation", "inflammatory", "immune-mediated",
+    "immunology", "cytokine", "interleukin", "tnf", "jak", "lupus", "sle",
+    "rheumatoid arthritis", "psoriasis", "psoriatic arthritis", "atopic dermatitis",
+    "hidradenitis", "ulcerative colitis", "crohn", "ibd", "asthma", "eosinophilic",
+    "vasculitis", "scleroderma", "sjogren", "myositis", "dermatomyositis",
+    "infection", "infectious disease", "viral", "bacterial", "antiviral", "vaccine",
+    "sepsis", "pneumonia", "covid", "influenza", "hepatitis", "hiv", "tuberculosis"
+]
+
 ONCOLOGY_OTHER_TERMS = [
     "solid tumor", "solid tumours", "non-small cell lung cancer", "nsclc",
     "small cell lung cancer", "sclc", "breast cancer", "triple-negative breast cancer",
@@ -213,6 +224,14 @@ DISPLAY_COLUMNS = [
     "ExclusionFlags",
     "MatchedQueryTerm"
 ]
+
+DOMAIN_CLUSTER_MAP = {
+    "Metabolic / CVRM": ["METABOLIC_CVRM"],
+    "Neurology": ["NEURO"],
+    "Cell Therapy": ["CELL_THERAPY_CAR_T"],
+    "Immunology / Inflammation": ["IMMUNOLOGY_INFLAMMATION"],
+    "Oncology / IO": ["ONCOLOGY_OTHER"],
+}
 
 # =========================================================
 # HELPERS
@@ -324,6 +343,7 @@ def detect_cluster(protocol):
     cart_support_hits = count_matches(ck_blob, CELL_THERAPY_CAR_T_SUPPORT)
     neuro_strong_hits = count_matches(ck_blob, NEURO_STRONG)
     neuro_support_hits = count_matches(combined, NEURO_SUPPORT)
+    immunology_hits = count_matches(combined, IMMUNOLOGY_INFLAMMATION_TERMS)
     oncology_hits = count_matches(combined, ONCOLOGY_OTHER_TERMS)
 
     if metabolic_hits >= 1:
@@ -332,6 +352,8 @@ def detect_cluster(protocol):
         return "CELL_THERAPY_CAR_T", cart_strong_hits + cart_support_hits
     if neuro_strong_hits >= 1:
         return "NEURO", neuro_strong_hits + neuro_support_hits
+    if immunology_hits >= 1:
+        return "IMMUNOLOGY_INFLAMMATION", immunology_hits
     if oncology_hits >= 1:
         return "ONCOLOGY_OTHER", oncology_hits
     return "OTHER", 0
@@ -384,9 +406,6 @@ def exclusion_flags(row, mode):
     if phase_bucket not in {"PHASE2", "PHASE2_3", "PHASE3"}:
         flags.append("not_phase_2_or_3")
 
-    if row.get("Cluster") == "ONCOLOGY_OTHER":
-        flags.append("oncology_other")
-
     if row.get("Cluster") == "OTHER":
         flags.append("off_focus")
 
@@ -398,9 +417,11 @@ def exclusion_flags(row, mode):
             flags.append("no_eu_signal")
 
     return "; ".join(flags)
+
 # UNUSED
 def locked_late_penalty(row):
     pass
+
 def locked_late_penalty(row):
     phase_bucket = row.get("PhaseBucket") or "NONE"
     status = (row.get("Status") or "").upper()
@@ -458,7 +479,7 @@ def trigger_score(row, mode, logic):
             score += 15
             reasons.append("EU signal")
 
-        countries = {c.strip() for c in (row.get("Countries") or "").split(";") if c.strip()}
+        countries = {c.strip() for c in (row.get("Countries") or "").split(",") if c.strip()}
         if countries.intersection(DACH_UK_PRIORITY):
             score += 8
             reasons.append("DACH/UK")
@@ -469,7 +490,7 @@ def trigger_score(row, mode, logic):
 
     try:
         enrollment = int(float(row.get("Enrollment") or 0))
-    except:
+    except Exception:
         enrollment = 0
 
     sy = row.get("StartYear")
@@ -506,9 +527,12 @@ def trigger_score(row, mode, logic):
         elif cluster == "NEURO":
             score += 8
             reasons.append("neuro")
+        elif cluster == "IMMUNOLOGY_INFLAMMATION":
+            score += 10
+            reasons.append("immunology/inflammation")
         elif cluster == "ONCOLOGY_OTHER":
-            score -= 20
-            reasons.append("oncology other")
+            score -= 5
+            reasons.append("oncology/IO")
         else:
             score -= 15
             reasons.append("off focus")
@@ -553,9 +577,12 @@ def trigger_score(row, mode, logic):
         elif cluster == "CELL_THERAPY_CAR_T":
             score += 12
             reasons.append("cell therapy fit")
+        elif cluster == "IMMUNOLOGY_INFLAMMATION":
+            score += 14
+            reasons.append("immunology/inflammation fit")
         elif cluster == "ONCOLOGY_OTHER":
-            score -= 10
-            reasons.append("oncology other")
+            score += 2
+            reasons.append("oncology/IO")
         else:
             score -= 8
             reasons.append("off focus")
@@ -630,9 +657,11 @@ def trigger_score(row, mode, logic):
         reasons.append("no EU signal")
 
     return max(score, 0), "; ".join(reasons)
+
 # UNUSED
 def dedupe_trials(df: pd.DataFrame):
     pass
+
 def dedupe_trials(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
         return df
@@ -680,10 +709,10 @@ def style_score_table(df: pd.DataFrame):
         except Exception:
             return ""
         if v >= 8.0:
-            return "background-color: #b91c1c; color: white;"   # rot
+            return "background-color: #b91c1c; color: white;"
         if v >= 5.5:
-            return "background-color: #7c3aed; color: white;"   # lila
-        return "background-color: #1d4ed8; color: white;"       # blau
+            return "background-color: #7c3aed; color: white;"
+        return "background-color: #1d4ed8; color: white;"
 
     def color_band(val):
         if str(val) == "Hot":
@@ -725,6 +754,34 @@ def df_download_button(df: pd.DataFrame, filename: str, label: str):
         use_container_width=True,
     )
 
+def build_domain_table(df: pd.DataFrame, domain: str) -> pd.DataFrame:
+    if df.empty:
+        return df
+
+    clusters = DOMAIN_CLUSTER_MAP.get(domain, [])
+    if not clusters:
+        return pd.DataFrame()
+
+    out = df[
+        (df["LeadSponsorTargetAccounts"].fillna("") != "") &
+        (df["StudyType"].fillna("").str.upper() == "INTERVENTIONAL") &
+        (df["LeadSponsorAcademic"] == False) &
+        (~df["ExclusionFlags"].fillna("").str.contains("title_noise", na=False)) &
+        (~df["ExclusionFlags"].fillna("").str.contains("off_focus", na=False)) &
+        (df["PhaseBucket"].isin(ALLOWED_SIDE_PHASES)) &
+        (df["Status"].fillna("").str.upper().isin(ALLOWED_SIDE_STATUSES)) &
+        (pd.to_numeric(df["Enrollment"], errors="coerce").fillna(0) >= MIN_SIDE_ENROLLMENT if False else True)
+    ].copy()
+
+    out = out[out["Cluster"].isin(clusters)].copy()
+    out = out[pd.to_numeric(out["Enrollment"], errors="coerce").fillna(0) >= MIN_ENROLLMENT_SIDE].copy()
+    out = out[pd.to_numeric(out["StartYear"], errors="coerce").fillna(0) >= MIN_SIDE_START_YEAR].copy()
+
+    return out.sort_values(
+        by=["TriggerScore", "StartYear", "Enrollment"],
+        ascending=[False, False, False]
+    ).reset_index(drop=True)
+
 # =========================================================
 # FETCH
 # =========================================================
@@ -744,11 +801,9 @@ def assign_commercial_hypothesis(row):
         "precision medicine", "omics", "metabolomics", "lipidomics"
     ])
 
-    biomarker_signal = biomarker_hits >= 2
-
-    if phase in {"PHASE1", "PHASE2"} and biomarker_signal:
+    if phase in {"PHASE1", "PHASE2"} and biomarker_hits >= 2:
         return "Mechanistic Gap"
-        
+
     if phase in {"PHASE2", "PHASE2_3"} and enrollment >= 150:
         if biomarker_hits == 0:
             return "Blind Scale Risk"
@@ -769,20 +824,21 @@ def assign_commercial_play(row):
             "Mechanistic signal present, but biological depth still limited",
             "Add pathway-level interpretation and retrospective metabolomics depth"
         ])
-        
+
     if h == "Blind Scale Risk":
         return pd.Series([
             "Clinical Development / Medical Director",
             "Large study scaling without biomarker or responder definition",
             "Introduce stratification layer to prevent signal dilution at scale"
-    ])
+        ])
 
     if h == "Weak Stratification":
         return pd.Series([
-        "Translational Medicine / Biomarker Lead",
-        "Initial stratification signals present but not robust",
-        "Strengthen biological signal and sharpen responder definition"
-    ])
+            "Translational Medicine / Biomarker Lead",
+            "Initial stratification signals present but not robust",
+            "Strengthen biological signal and sharpen responder definition"
+        ])
+
     if h == "Stratification Risk":
         return pd.Series([
             "Clinical Development / Medical Director",
@@ -817,13 +873,13 @@ def build_outreach_hook(row):
 
     if h == "Mechanistic Gap":
         return f"As {sponsor} advances this {phase} program, there may be an opportunity to add pathway-level depth around the emerging biology."
-        
+
     if h == "Blind Scale Risk":
         return f"As {sponsor} scales this {phase} study, the lack of a clear responder or biomarker layer may increase the risk of signal dilution."
 
     if h == "Weak Stratification":
         return f"As {sponsor} advances this {phase} program, early stratification signals may benefit from deeper biological resolution."
-        
+
     if h == "Stratification Risk":
         return f"As {sponsor} scales this {phase} study, a key question may be whether responder heterogeneity could dilute the signal."
 
@@ -834,7 +890,7 @@ def build_outreach_hook(row):
         return f"Even at this stage, {sponsor} may still benefit from subgroup insight and retrospective differentiation around the readout."
 
     return "Potential opportunity worth a closer look."
-    
+
 @st.cache_data(show_spinner=False, ttl=3600)
 def fetch_trials(mode: str, logic: str):
     all_rows = []
@@ -924,8 +980,7 @@ def fetch_trials(mode: str, logic: str):
     if df.empty:
         debug_rows = [
             {"Metric": "full_rows", "Value": 0},
-            {"Metric": "metabolic_core_rows", "Value": 0},
-            {"Metric": "neuro_celltherapy_rows", "Value": 0},
+            {"Metric": "selected_domain_rows", "Value": 0},
             {"Metric": "phase3_watchlist_rows", "Value": 0},
             {"Metric": "request_errors", "Value": len(request_errors)},
         ]
@@ -943,8 +998,7 @@ def fetch_trials(mode: str, logic: str):
     if df.empty:
         debug_rows = [
             {"Metric": "full_rows", "Value": 0},
-            {"Metric": "metabolic_core_rows", "Value": 0},
-            {"Metric": "neuro_celltherapy_rows", "Value": 0},
+            {"Metric": "selected_domain_rows", "Value": 0},
             {"Metric": "phase3_watchlist_rows", "Value": 0},
             {"Metric": "request_errors", "Value": len(request_errors)},
         ]
@@ -968,12 +1022,12 @@ def fetch_trials(mode: str, logic: str):
     df["CommercialHypothesis"] = df.apply(assign_commercial_hypothesis, axis=1)
     df[["Who", "WhyNow", "WhyUs"]] = df.apply(assign_commercial_play, axis=1)
     df["OutreachHook"] = df.apply(build_outreach_hook, axis=1)
+
     metabolic_core = df[
         (df["LeadSponsorTargetAccounts"].fillna("") != "") &
         (df["StudyType"].fillna("").str.upper() == "INTERVENTIONAL") &
         (df["LeadSponsorAcademic"] == False) &
         (~df["ExclusionFlags"].fillna("").str.contains("title_noise", na=False)) &
-        (~df["ExclusionFlags"].fillna("").str.contains("oncology_other", na=False)) &
         (~df["ExclusionFlags"].fillna("").str.contains("off_focus", na=False)) &
         (df["PhaseBucket"].isin(ALLOWED_CORE_PHASES)) &
         (df["Status"].fillna("").str.upper().isin(ALLOWED_CORE_STATUSES)) &
@@ -990,7 +1044,6 @@ def fetch_trials(mode: str, logic: str):
         (df["StudyType"].fillna("").str.upper() == "INTERVENTIONAL") &
         (df["LeadSponsorAcademic"] == False) &
         (~df["ExclusionFlags"].fillna("").str.contains("title_noise", na=False)) &
-        (~df["ExclusionFlags"].fillna("").str.contains("oncology_other", na=False)) &
         (~df["ExclusionFlags"].fillna("").str.contains("off_focus", na=False)) &
         (df["PhaseBucket"].isin(ALLOWED_SIDE_PHASES)) &
         (df["Status"].fillna("").str.upper().isin(ALLOWED_SIDE_STATUSES)) &
@@ -1007,7 +1060,6 @@ def fetch_trials(mode: str, logic: str):
         (df["StudyType"].fillna("").str.upper() == "INTERVENTIONAL") &
         (df["LeadSponsorAcademic"] == False) &
         (~df["ExclusionFlags"].fillna("").str.contains("title_noise", na=False)) &
-        (~df["ExclusionFlags"].fillna("").str.contains("oncology_other", na=False)) &
         (~df["ExclusionFlags"].fillna("").str.contains("off_focus", na=False)) &
         (df["PhaseBucket"].isin(ALLOWED_WATCHLIST_PHASES)) &
         (df["Status"].fillna("").str.upper().isin(ALLOWED_WATCHLIST_STATUSES)) &
@@ -1036,7 +1088,7 @@ def fetch_trials(mode: str, logic: str):
 
 st.markdown("""
 <div style="padding:16px;border-radius:14px;background:#0f172a;color:white;margin-bottom:16px;">
-  <h1 style="margin-bottom:4px;">🛰️ Helmuts Atlas Radar V8.1</h1>
+  <h1 style="margin-bottom:4px;">🛰️ Helmuts Atlas Radar V8.2</h1>
   <p style="margin:0;color:#cbd5e1;">ClinicalTrials.gov signal radar for commercial entry points</p>
 </div>
 """, unsafe_allow_html=True)
@@ -1047,13 +1099,9 @@ Atlas Radar is a signal-detection layer built on top of ClinicalTrials.gov, desi
 
 It systematically scans active trials, filters for Phase 2 / 3 interventional studies, and enriches each record with structured attributes such as sponsor relevance, geography, disease area, and study scale. Based on this, a scoring model ranks trials by their potential commercial importance.
 
-On top of the technical layer, Atlas Radar applies a simple commercial interpretation. Each trial is assigned a hypothesis (e.g. Mechanistic Gap, Stratification Risk, Expansion Opportunity), which is translated into actionable guidance:
+On top of the technical layer, Atlas Radar applies a simple commercial interpretation. Each trial is assigned a hypothesis (e.g. Mechanistic Gap, Blind Scale Risk, Weak Stratification, Expansion Opportunity), which is translated into actionable guidance: who to target, why engagement is timely, and how to position the conversation.
 
-who to target
-why engagement is timely
-how to position the conversation
-
-The result is a focused set of prioritized trials that can be used as direct entry points for proactive outreach. Ask Helmut
+The current version adds disease-domain views for Metabolic/CVRM, Neurology, Cell Therapy, Immunology/Inflammation, and Oncology/IO. The goal is not one fixed truth, but a controlled radar that lets the team explore different commercial entry points.
 """)
 
 st.caption("ClinicalTrials.gov trigger radar for Domestic Sales (US) and International Sales (EU/ROW).")
@@ -1067,29 +1115,29 @@ logic = st.selectbox(
     "Select Opportunity Model",
     ["Clinical Scale", "Discovery & Translational"]
 )
+
 domain = st.selectbox(
-    "Select Domain",
-    ["Metabolic / CVRM", "Neurology", "Cell Therapy"]
+    "Select Disease Domain",
+    ["Metabolic / CVRM", "Neurology", "Cell Therapy", "Immunology / Inflammation", "Oncology / IO"]
 )
+
 run = st.button("Run Atlas Radar", type="primary", use_container_width=True)
+
 if st.button("Clear cache"):
     st.cache_data.clear()
+
 if run:
     with st.spinner("Running Atlas Radar..."):
         full_df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df = fetch_trials(mode, logic)
-        
-    display_df = neuro_celltherapy[neuro_celltherapy["Cluster"] == "CELL_THERAPY_CAR_T"]
 
-else:
-    display_df = pd.DataFrame()
-    
+    selected_domain = build_domain_table(full_df, domain)
+
     st.subheader("Summary")
-    st.write("Domain:", domain)
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Full", len(full_df))
-    c2.metric("Metabolic core", len(metabolic_core))
-    c3.metric("Neuro / Cell therapy", len(neuro_celltherapy))
-    c4.metric("Phase 3 watchlist", len(phase3_watchlist))
+    c2.metric("Selected domain", len(selected_domain))
+    c3.metric("Phase 3 watchlist", len(phase3_watchlist))
+    c4.metric("Errors", len(error_df))
 
     st.markdown(
         """
@@ -1104,12 +1152,13 @@ else:
 
     st.markdown("---")
 
-    tab1, tab2, tab3, tab4 = st.tabs(
-        ["Metabolic Core", "Neuro / Cell Therapy", "Phase 3 Watchlist", "Debug"]
+    tab1, tab2, tab3 = st.tabs(
+        ["Selected Domain", "Phase 3 Watchlist", "Debug"]
     )
 
     with tab1:
-        display_df = prepare_display_df(full_df)
+        st.write(f"Domain: {domain}")
+        display_df = prepare_display_df(selected_domain)
         st.dataframe(
             style_score_table(display_df),
             use_container_width=True,
@@ -1121,30 +1170,12 @@ else:
             }
         )
         df_download_button(
-            metabolic_core,
-            f"atlas_radar_{mode.lower()}_metabolic_core.csv",
-            "Download Metabolic Core CSV"
+            selected_domain,
+            f"atlas_radar_{mode.lower()}_{domain.lower().replace(' ', '_').replace('/', '').replace('__', '_')}.csv",
+            "Download Selected Domain CSV"
         )
 
     with tab2:
-        display_df = prepare_display_df(neuro_celltherapy)
-        st.dataframe(
-            style_score_table(display_df),
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "NCT_Link": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
-                "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
-                "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
-            }
-        )
-        df_download_button(
-            neuro_celltherapy,
-            f"atlas_radar_{mode.lower()}_neuro_celltherapy.csv",
-            "Download Neuro / Cell Therapy CSV"
-        )
-
-    with tab3:
         display_df = prepare_display_df(phase3_watchlist)
         st.dataframe(
             style_score_table(display_df),
@@ -1162,7 +1193,7 @@ else:
             "Download Phase 3 Watchlist CSV"
         )
 
-    with tab4:
+    with tab3:
         st.write("Debug summary")
         st.dataframe(debug_summary, use_container_width=True, hide_index=True)
 
