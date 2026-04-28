@@ -919,43 +919,8 @@ def fetch_trials(mode: str, logic: str):
 
             time.sleep(REQUEST_SLEEP_SECONDS)
 
-    df = pd.DataFrame(all_rows)
-
-    if df.empty:
-        debug_rows = [
-            {"Metric": "full_rows", "Value": 0},
-            {"Metric": "metabolic_core_rows", "Value": 0},
-            {"Metric": "neuro_celltherapy_rows", "Value": 0},
-            {"Metric": "phase3_watchlist_rows", "Value": 0},
-            {"Metric": "request_errors", "Value": len(request_errors)},
-        ]
-        debug_summary = pd.DataFrame(debug_rows)
-        error_df = pd.DataFrame(request_errors)
-        return df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), debug_summary, error_df
-
-    df = df.groupby("NCT", as_index=False).first()
-
-    # Domain filter
-if domain == "Metabolic / CVRM":
-    df = df[df["Cluster"] == "METABOLIC_CVRM"]
-
-elif domain == "Neurology":
-    df = df[df["Cluster"] == "NEURO"]
-
-elif domain == "Cell Therapy":
-    df = df[df["Cluster"] == "CELL_THERAPY_CAR_T"]
-
-elif domain == "Immunology / Inflammation":
-    # placeholder: aktuell noch nichts → wird später definiert
-    pass
-
-elif domain == "Oncology / IO":
-    df = df[df["Cluster"] == "ONCOLOGY_OTHER"]
-    if mode == "Domestic":
-        df = df[df["US_SIGNAL"] == True].copy()
-    else:
-        df = df[df["EU_SIGNAL"] == True].copy()
-
+        df = pd.DataFrame(all_rows)
+    
         if df.empty:
             debug_rows = [
                 {"Metric": "full_rows", "Value": 0},
@@ -967,84 +932,119 @@ elif domain == "Oncology / IO":
             debug_summary = pd.DataFrame(debug_rows)
             error_df = pd.DataFrame(request_errors)
             return df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), debug_summary, error_df
-
-    df["ExclusionFlags"] = df.apply(lambda row: exclusion_flags(row, mode), axis=1)
-    scores = df.apply(lambda row: trigger_score(row, mode, logic), axis=1)
-    df["TriggerScore"] = [x[0] for x in scores]
-    df["ScoreReasons"] = [x[1] for x in scores]
-
-    max_score = df["TriggerScore"].max()
-
-    if max_score > 0:
-        df["Score_10"] = (df["TriggerScore"] / max_score * 10).round(1)
-    else:
-        df["Score_10"] = 0.0
-
-    df["ScoreBand"] = df["Score_10"].apply(get_score_band)
-    df["CommercialHypothesis"] = df.apply(assign_commercial_hypothesis, axis=1)
-    df[["Who", "WhyNow", "WhyUs"]] = df.apply(assign_commercial_play, axis=1)
-    df["OutreachHook"] = df.apply(build_outreach_hook, axis=1)
-    metabolic_core = df[
-        (df["LeadSponsorTargetAccounts"].fillna("") != "") &
-        (df["StudyType"].fillna("").str.upper() == "INTERVENTIONAL") &
-        (df["LeadSponsorAcademic"] == False) &
-        (~df["ExclusionFlags"].fillna("").str.contains("title_noise", na=False)) &
-        (~df["ExclusionFlags"].fillna("").str.contains("oncology_other", na=False)) &
-        (~df["ExclusionFlags"].fillna("").str.contains("off_focus", na=False)) &
-        (df["PhaseBucket"].isin(ALLOWED_CORE_PHASES)) &
-        (df["Status"].fillna("").str.upper().isin(ALLOWED_CORE_STATUSES)) &
-        (pd.to_numeric(df["Enrollment"], errors="coerce").fillna(0) >= MIN_ENROLLMENT_CORE) &
-        (pd.to_numeric(df["StartYear"], errors="coerce").fillna(0) >= MIN_CORE_START_YEAR) &
-        (df["Cluster"] == "METABOLIC_CVRM")
-    ].copy().sort_values(
-        by=["TriggerScore", "StartYear", "Enrollment"],
-        ascending=[False, False, False]
-    ).reset_index(drop=True)
-
-    neuro_celltherapy = df[
-        (df["LeadSponsorTargetAccounts"].fillna("") != "") &
-        (df["StudyType"].fillna("").str.upper() == "INTERVENTIONAL") &
-        (df["LeadSponsorAcademic"] == False) &
-        (~df["ExclusionFlags"].fillna("").str.contains("title_noise", na=False)) &
-        (~df["ExclusionFlags"].fillna("").str.contains("oncology_other", na=False)) &
-        (~df["ExclusionFlags"].fillna("").str.contains("off_focus", na=False)) &
-        (df["PhaseBucket"].isin(ALLOWED_SIDE_PHASES)) &
-        (df["Status"].fillna("").str.upper().isin(ALLOWED_SIDE_STATUSES)) &
-        (pd.to_numeric(df["Enrollment"], errors="coerce").fillna(0) >= MIN_ENROLLMENT_SIDE) &
-        (pd.to_numeric(df["StartYear"], errors="coerce").fillna(0) >= MIN_SIDE_START_YEAR) &
-        (df["Cluster"].isin(["NEURO", "CELL_THERAPY_CAR_T"]))
-    ].copy().sort_values(
-        by=["TriggerScore", "StartYear", "Enrollment"],
-        ascending=[False, False, False]
-    ).reset_index(drop=True)
-
-    phase3_watchlist = df[
-        (df["LeadSponsorTargetAccounts"].fillna("") != "") &
-        (df["StudyType"].fillna("").str.upper() == "INTERVENTIONAL") &
-        (df["LeadSponsorAcademic"] == False) &
-        (~df["ExclusionFlags"].fillna("").str.contains("title_noise", na=False)) &
-        (~df["ExclusionFlags"].fillna("").str.contains("oncology_other", na=False)) &
-        (~df["ExclusionFlags"].fillna("").str.contains("off_focus", na=False)) &
-        (df["PhaseBucket"].isin(ALLOWED_WATCHLIST_PHASES)) &
-        (df["Status"].fillna("").str.upper().isin(ALLOWED_WATCHLIST_STATUSES)) &
-        (pd.to_numeric(df["StartYear"], errors="coerce").fillna(0) >= MIN_WATCHLIST_START_YEAR)
-    ].copy().sort_values(
-        by=["TriggerScore", "StartYear", "Enrollment"],
-        ascending=[False, False, False]
-    ).reset_index(drop=True)
-
-    debug_rows = [
-        {"Metric": "full_rows", "Value": len(df)},
-        {"Metric": "metabolic_core_rows", "Value": len(metabolic_core)},
-        {"Metric": "neuro_celltherapy_rows", "Value": len(neuro_celltherapy)},
-        {"Metric": "phase3_watchlist_rows", "Value": len(phase3_watchlist)},
-        {"Metric": "us_pure_rows", "Value": int(df["US_PURE"].sum()) if "US_PURE" in df.columns else 0},
-        {"Metric": "request_errors", "Value": len(request_errors)},
-    ]
-    debug_summary = pd.DataFrame(debug_rows)
-    error_df = pd.DataFrame(request_errors)
-
-    return df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df
+    
+        df = df.groupby("NCT", as_index=False).first()
+    
+        # Domain filter
+    if domain == "Metabolic / CVRM":
+        df = df[df["Cluster"] == "METABOLIC_CVRM"]
+    
+    elif domain == "Neurology":
+        df = df[df["Cluster"] == "NEURO"]
+    
+    elif domain == "Cell Therapy":
+        df = df[df["Cluster"] == "CELL_THERAPY_CAR_T"]
+    
+    elif domain == "Immunology / Inflammation":
+        # placeholder: aktuell noch nichts → wird später definiert
+        pass
+    
+    elif domain == "Oncology / IO":
+        df = df[df["Cluster"] == "ONCOLOGY_OTHER"]
+        if mode == "Domestic":
+            df = df[df["US_SIGNAL"] == True].copy()
+        else:
+            df = df[df["EU_SIGNAL"] == True].copy()
+    
+            if df.empty:
+                debug_rows = [
+                    {"Metric": "full_rows", "Value": 0},
+                    {"Metric": "metabolic_core_rows", "Value": 0},
+                    {"Metric": "neuro_celltherapy_rows", "Value": 0},
+                    {"Metric": "phase3_watchlist_rows", "Value": 0},
+                    {"Metric": "request_errors", "Value": len(request_errors)},
+                ]
+                debug_summary = pd.DataFrame(debug_rows)
+                error_df = pd.DataFrame(request_errors)
+                return df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), debug_summary, error_df
+    
+        df["ExclusionFlags"] = df.apply(lambda row: exclusion_flags(row, mode), axis=1)
+        scores = df.apply(lambda row: trigger_score(row, mode, logic), axis=1)
+        df["TriggerScore"] = [x[0] for x in scores]
+        df["ScoreReasons"] = [x[1] for x in scores]
+    
+        max_score = df["TriggerScore"].max()
+    
+        if max_score > 0:
+            df["Score_10"] = (df["TriggerScore"] / max_score * 10).round(1)
+        else:
+            df["Score_10"] = 0.0
+    
+        df["ScoreBand"] = df["Score_10"].apply(get_score_band)
+        df["CommercialHypothesis"] = df.apply(assign_commercial_hypothesis, axis=1)
+        df[["Who", "WhyNow", "WhyUs"]] = df.apply(assign_commercial_play, axis=1)
+        df["OutreachHook"] = df.apply(build_outreach_hook, axis=1)
+        metabolic_core = df[
+            (df["LeadSponsorTargetAccounts"].fillna("") != "") &
+            (df["StudyType"].fillna("").str.upper() == "INTERVENTIONAL") &
+            (df["LeadSponsorAcademic"] == False) &
+            (~df["ExclusionFlags"].fillna("").str.contains("title_noise", na=False)) &
+            (~df["ExclusionFlags"].fillna("").str.contains("oncology_other", na=False)) &
+            (~df["ExclusionFlags"].fillna("").str.contains("off_focus", na=False)) &
+            (df["PhaseBucket"].isin(ALLOWED_CORE_PHASES)) &
+            (df["Status"].fillna("").str.upper().isin(ALLOWED_CORE_STATUSES)) &
+            (pd.to_numeric(df["Enrollment"], errors="coerce").fillna(0) >= MIN_ENROLLMENT_CORE) &
+            (pd.to_numeric(df["StartYear"], errors="coerce").fillna(0) >= MIN_CORE_START_YEAR) &
+            (df["Cluster"] == "METABOLIC_CVRM")
+        ].copy().sort_values(
+            by=["TriggerScore", "StartYear", "Enrollment"],
+            ascending=[False, False, False]
+        ).reset_index(drop=True)
+    
+        neuro_celltherapy = df[
+            (df["LeadSponsorTargetAccounts"].fillna("") != "") &
+            (df["StudyType"].fillna("").str.upper() == "INTERVENTIONAL") &
+            (df["LeadSponsorAcademic"] == False) &
+            (~df["ExclusionFlags"].fillna("").str.contains("title_noise", na=False)) &
+            (~df["ExclusionFlags"].fillna("").str.contains("oncology_other", na=False)) &
+            (~df["ExclusionFlags"].fillna("").str.contains("off_focus", na=False)) &
+            (df["PhaseBucket"].isin(ALLOWED_SIDE_PHASES)) &
+            (df["Status"].fillna("").str.upper().isin(ALLOWED_SIDE_STATUSES)) &
+            (pd.to_numeric(df["Enrollment"], errors="coerce").fillna(0) >= MIN_ENROLLMENT_SIDE) &
+            (pd.to_numeric(df["StartYear"], errors="coerce").fillna(0) >= MIN_SIDE_START_YEAR) &
+            (df["Cluster"].isin(["NEURO", "CELL_THERAPY_CAR_T"]))
+        ].copy().sort_values(
+            by=["TriggerScore", "StartYear", "Enrollment"],
+            ascending=[False, False, False]
+        ).reset_index(drop=True)
+    
+        phase3_watchlist = df[
+            (df["LeadSponsorTargetAccounts"].fillna("") != "") &
+            (df["StudyType"].fillna("").str.upper() == "INTERVENTIONAL") &
+            (df["LeadSponsorAcademic"] == False) &
+            (~df["ExclusionFlags"].fillna("").str.contains("title_noise", na=False)) &
+            (~df["ExclusionFlags"].fillna("").str.contains("oncology_other", na=False)) &
+            (~df["ExclusionFlags"].fillna("").str.contains("off_focus", na=False)) &
+            (df["PhaseBucket"].isin(ALLOWED_WATCHLIST_PHASES)) &
+            (df["Status"].fillna("").str.upper().isin(ALLOWED_WATCHLIST_STATUSES)) &
+            (pd.to_numeric(df["StartYear"], errors="coerce").fillna(0) >= MIN_WATCHLIST_START_YEAR)
+        ].copy().sort_values(
+            by=["TriggerScore", "StartYear", "Enrollment"],
+            ascending=[False, False, False]
+        ).reset_index(drop=True)
+    
+        debug_rows = [
+            {"Metric": "full_rows", "Value": len(df)},
+            {"Metric": "metabolic_core_rows", "Value": len(metabolic_core)},
+            {"Metric": "neuro_celltherapy_rows", "Value": len(neuro_celltherapy)},
+            {"Metric": "phase3_watchlist_rows", "Value": len(phase3_watchlist)},
+            {"Metric": "us_pure_rows", "Value": int(df["US_PURE"].sum()) if "US_PURE" in df.columns else 0},
+            {"Metric": "request_errors", "Value": len(request_errors)},
+        ]
+        debug_summary = pd.DataFrame(debug_rows)
+        error_df = pd.DataFrame(request_errors)
+    
+        return df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df
 
 # =========================================================
 # UI
