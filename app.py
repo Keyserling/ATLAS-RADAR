@@ -836,7 +836,8 @@ def build_outreach_hook(row):
     return "Potential opportunity worth a closer look."
     
 @st.cache_data(show_spinner=False, ttl=3600)
-def fetch_trials(mode: str, logic: str):
+@st.cache_data
+def fetch_trials(mode: str, logic: str, domain: str):
     all_rows = []
     request_errors = []
 
