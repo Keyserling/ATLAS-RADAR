@@ -1299,7 +1299,23 @@ Title: {selected_row.get('Title', '')}
 Primary Outcome: {selected_row.get('PrimaryOutcome', '')}
 Commercial Hypothesis: {selected_row.get('CommercialHypothesis', '')}
 
-Write like a peer, not a vendor. Mention any specific biomarker (e.g. NfL) at most once. Do not repeat it.
+Write like a peer, not a vendor. Start with a concrete observation about the trial design, endpoint, population, or measurement layer. 
+Do not start with evaluative statements (e.g. "X is the right layer", "X is important").
+
+Keep the email tight and selective. Do not explain every concept. 
+State one observation, one risk, and one implication. 
+Avoid listing multiple mechanisms or pathways; name at most one if necessary.
+
+Mention any specific biomarker (e.g. NfL) at most once. 
+After introducing it, refer to it indirectly (e.g. "the marker", "that layer").
+
+Avoid explanatory or didactic language. 
+Do not sound like a review or teaching text.
+Avoid phrases like "the implication is", "this means", or "in that setting".
+
+Prefer under-explaining over over-explaining.
+
+Write as if you noticed one specific tension in the trial, not as if you are explaining the disease or educating the reader. Mention any specific biomarker (e.g. NfL) at most once. Do not repeat it.
 After introducing it, refer to it indirectly (e.g. "the marker", "that layer"). Keep the email tight and selective. Do not explain every concept. 
 State one observation, one risk, and one implication. 
 Avoid listing multiple mechanisms or pathways; name at most one or two.
