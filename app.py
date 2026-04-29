@@ -1260,7 +1260,6 @@ if run:
             "Download Full CSV"
         )
 # sichere Spaltenwahl (verhindert Fehler)
-st.write("Columns available:", list(full_df.columns))
 selected_trial = st.text_input("Paste NCT link")
 
 if st.button("Generate Email"):
