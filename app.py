@@ -1174,7 +1174,7 @@ if run:
 if st.button("Clear cache"):
     st.cache_data.clear()
 
-if run:
+if st.session_state.get("run"):
     with st.spinner("Running Atlas Radar..."):
         full_df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df = fetch_trials(
             mode,
