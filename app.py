@@ -2,15 +2,14 @@
 from openai import OpenAI
 import streamlit as st
 
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-import io
 import re
 import time
-from typing import Any, List, Tuple
+from typing import Any
 
 import requests
 import pandas as pd
-import streamlit as st
+
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # =========================================================
 # PAGE
@@ -241,12 +240,12 @@ DOMAIN_CLUSTER_MAP = {
 # HELPERS
 # =========================================================
 
-def safe_get(dct, path, default=None):
+def safe_get(dct: dict, path: list[str], default: Any = None):
     cur = dct
-    for k in path:
-        if not isinstance(cur, dict) or k not in cur:
+    for key in path:
+        if not isinstance(cur, dict) or key not in cur:
             return default
-        cur = cur[k]
+        cur = cur[key]
     return cur
 
 def contains_any(text, keywords):
@@ -366,16 +365,14 @@ def lead_sponsor_is_academic(lead_sponsor):
     return contains_any(lead_sponsor or "", ACADEMIC_TERMS)
 
 def has_us_signal(countries):
-    c = set(countries or [])
-    return "United States" in c
+    return "United States" in set(countries or [])
 
 def us_pure(countries):
     c = set(countries or [])
     return len(c) > 0 and c == {"United States"}
 
 def has_eu_signal(countries):
-    c = set(countries or [])
-    return len(c.intersection(EU_COUNTRIES)) > 0
+    return len(set(countries or []).intersection(EU_COUNTRIES)) > 0
 
 def parse_phase_bucket(phases):
     p = (phases or "").upper()
@@ -421,41 +418,6 @@ def exclusion_flags(row, mode):
             flags.append("no_eu_signal")
 
     return "; ".join(flags)
-
-# UNUSED
-def locked_late_penalty(row):
-    pass
-
-def locked_late_penalty(row):
-    phase_bucket = row.get("PhaseBucket") or "NONE"
-    status = (row.get("Status") or "").upper()
-
-    try:
-        enrollment = int(float(row.get("Enrollment") or 0))
-    except Exception:
-        enrollment = 0
-
-    po = (row.get("PrimaryOutcome") or "").lower()
-    blob = f"{row.get('ConditionsKeywordsBlob','')} {row.get('TextBlob','')}".lower()
-
-    biomarker_signal = any(k in po for k in BIOMARKER_KEYWORDS) or any(k in blob for k in BIOMARKER_KEYWORDS)
-
-    penalty = 0
-    reasons = []
-
-    if phase_bucket == "PHASE3" and status == "ACTIVE_NOT_RECRUITING":
-        penalty -= 10
-        reasons.append("late/less accessible")
-
-    if phase_bucket == "PHASE3" and enrollment >= 1000 and not biomarker_signal:
-        penalty -= 8
-        reasons.append("large locked phase 3")
-
-    if phase_bucket == "PHASE2_3" and enrollment >= 1500 and status in {"RECRUITING", "ACTIVE_NOT_RECRUITING"} and not biomarker_signal:
-        penalty -= 5
-        reasons.append("scale-up rigidity")
-
-    return penalty, reasons
 
 def trigger_score(row, mode, logic, controls):
     score = 0
@@ -662,35 +624,6 @@ def trigger_score(row, mode, logic, controls):
 
     return max(score, 0), "; ".join(reasons)
 
-# UNUSED
-def dedupe_trials(df: pd.DataFrame):
-    pass
-
-def dedupe_trials(df: pd.DataFrame) -> pd.DataFrame:
-    if df.empty:
-        return df
-
-    work = df.copy()
-
-    work["LeadMatchFlag"] = work["LeadSponsorTargetAccounts"].fillna("").apply(lambda x: 1 if str(x).strip() else 0)
-    work["ClusterHitsSort"] = pd.to_numeric(work["ClusterHits"], errors="coerce").fillna(0)
-    work["EnrollmentSort"] = pd.to_numeric(work["Enrollment"], errors="coerce").fillna(0)
-    work["TextLenSort"] = (
-        work["Title"].fillna("").astype(str).str.len() +
-        work["OfficialTitle"].fillna("").astype(str).str.len() +
-        work["PrimaryOutcome"].fillna("").astype(str).str.len()
-    )
-
-    work = work.sort_values(
-        by=["NCT", "LeadMatchFlag", "ClusterHitsSort", "EnrollmentSort", "TextLenSort"],
-        ascending=[True, False, False, False, False]
-    )
-
-    work = work.drop_duplicates(subset=["NCT"], keep="first").copy()
-    work = work.drop(columns=["LeadMatchFlag", "ClusterHitsSort", "EnrollmentSort", "TextLenSort"])
-
-    return work.reset_index(drop=True)
-
 def get_score_band(score_10):
     try:
         score_10 = float(score_10)
@@ -773,8 +706,7 @@ def build_domain_table(df: pd.DataFrame, domain: str) -> pd.DataFrame:
         (~df["ExclusionFlags"].fillna("").str.contains("title_noise", na=False)) &
         (~df["ExclusionFlags"].fillna("").str.contains("off_focus", na=False)) &
         (df["PhaseBucket"].isin(ALLOWED_SIDE_PHASES)) &
-        (df["Status"].fillna("").str.upper().isin(ALLOWED_SIDE_STATUSES)) &
-        (pd.to_numeric(df["Enrollment"], errors="coerce").fillna(0) >= MIN_SIDE_ENROLLMENT if False else True)
+        (df["Status"].fillna("").str.upper().isin(ALLOWED_SIDE_STATUSES))
     ].copy()
 
     out = out[out["Cluster"].isin(clusters)].copy()
@@ -787,7 +719,7 @@ def build_domain_table(df: pd.DataFrame, domain: str) -> pd.DataFrame:
     ).reset_index(drop=True)
 
 # =========================================================
-# FETCH
+# COMMERCIAL LAYER
 # =========================================================
 
 def assign_commercial_hypothesis(row):
@@ -864,11 +796,7 @@ def assign_commercial_play(row):
             "Support post-hoc stratification and differentiation"
         ])
 
-    return pd.Series([
-        "Unclear",
-        "Unclear",
-        "Unclear"
-    ])
+    return pd.Series(["Unclear", "Unclear", "Unclear"])
 
 def build_outreach_hook(row):
     h = row.get("CommercialHypothesis")
@@ -894,6 +822,10 @@ def build_outreach_hook(row):
         return f"Even at this stage, {sponsor} may still benefit from subgroup insight and retrospective differentiation around the readout."
 
     return "Potential opportunity worth a closer look."
+
+# =========================================================
+# FETCH
+# =========================================================
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def fetch_trials(mode: str, logic: str, controls_tuple: tuple):
@@ -983,15 +915,13 @@ def fetch_trials(mode: str, logic: str, controls_tuple: tuple):
     df = pd.DataFrame(all_rows)
 
     if df.empty:
-        debug_rows = [
+        debug_summary = pd.DataFrame([
             {"Metric": "full_rows", "Value": 0},
             {"Metric": "selected_domain_rows", "Value": 0},
             {"Metric": "phase3_watchlist_rows", "Value": 0},
             {"Metric": "request_errors", "Value": len(request_errors)},
-        ]
-        debug_summary = pd.DataFrame(debug_rows)
-        error_df = pd.DataFrame(request_errors)
-        return df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), debug_summary, error_df
+        ])
+        return df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), debug_summary, pd.DataFrame(request_errors)
 
     df = df.groupby("NCT", as_index=False).first()
 
@@ -1001,15 +931,13 @@ def fetch_trials(mode: str, logic: str, controls_tuple: tuple):
         df = df[df["EU_SIGNAL"] == True].copy()
 
     if df.empty:
-        debug_rows = [
+        debug_summary = pd.DataFrame([
             {"Metric": "full_rows", "Value": 0},
             {"Metric": "selected_domain_rows", "Value": 0},
             {"Metric": "phase3_watchlist_rows", "Value": 0},
             {"Metric": "request_errors", "Value": len(request_errors)},
-        ]
-        debug_summary = pd.DataFrame(debug_rows)
-        error_df = pd.DataFrame(request_errors)
-        return df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), debug_summary, error_df
+        ])
+        return df, pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), debug_summary, pd.DataFrame(request_errors)
 
     df["ExclusionFlags"] = df.apply(lambda row: exclusion_flags(row, mode), axis=1)
     scores = df.apply(lambda row: trigger_score(row, mode, logic, controls), axis=1)
@@ -1017,12 +945,7 @@ def fetch_trials(mode: str, logic: str, controls_tuple: tuple):
     df["ScoreReasons"] = [x[1] for x in scores]
 
     max_score = df["TriggerScore"].max()
-
-    if max_score > 0:
-        df["Score_10"] = (df["TriggerScore"] / max_score * 10).round(1)
-    else:
-        df["Score_10"] = 0.0
-
+    df["Score_10"] = (df["TriggerScore"] / max_score * 10).round(1) if max_score > 0 else 0.0
     df["ScoreBand"] = df["Score_10"].apply(get_score_band)
     df["CommercialHypothesis"] = df.apply(assign_commercial_hypothesis, axis=1)
     df[["Who", "WhyNow", "WhyUs"]] = df.apply(assign_commercial_play, axis=1)
@@ -1074,15 +997,14 @@ def fetch_trials(mode: str, logic: str, controls_tuple: tuple):
         ascending=[False, False, False]
     ).reset_index(drop=True)
 
-    debug_rows = [
+    debug_summary = pd.DataFrame([
         {"Metric": "full_rows", "Value": len(df)},
         {"Metric": "metabolic_core_rows", "Value": len(metabolic_core)},
         {"Metric": "neuro_celltherapy_rows", "Value": len(neuro_celltherapy)},
         {"Metric": "phase3_watchlist_rows", "Value": len(phase3_watchlist)},
         {"Metric": "us_pure_rows", "Value": int(df["US_PURE"].sum()) if "US_PURE" in df.columns else 0},
         {"Metric": "request_errors", "Value": len(request_errors)},
-    ]
-    debug_summary = pd.DataFrame(debug_rows)
+    ])
     error_df = pd.DataFrame(request_errors)
 
     return df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df
@@ -1114,13 +1036,6 @@ If you want to avoid programs that are scaling without clarity, increase No blin
 
 Each adjustment does not add new trials — it re-ranks the same universe based on your commercial intent.
 
-As a result, Atlas Radar can be used in different modes:
-
-Early-entry scouting → high Early entry, high Show biology
-Trial rescue / de-risking → high No blind scale, moderate Big programs
-Strategic large deals → high Big programs, moderate Translational depth
-Scientific positioning → high Show biology and Translational depth
-
 The goal is not to find “all good trials”, but to surface the right trials for a specific commercial angle.
 
 Think of it as a radar, not a report.
@@ -1128,10 +1043,7 @@ Think of it as a radar, not a report.
 
 st.caption("ClinicalTrials.gov trigger radar for Domestic Sales (US) and International Sales (EU/ROW).")
 
-mode = st.selectbox(
-    "Select Radar",
-    ["Domestic", "International"]
-)
+mode = st.selectbox("Select Radar", ["Domestic", "International"])
 
 logic = st.selectbox(
     "Select Opportunity Model",
@@ -1172,8 +1084,10 @@ controls_tuple = tuple(sorted(controls.items()))
 run = st.button("Run Atlas Radar", type="primary", use_container_width=True)
 if run:
     st.session_state["run"] = True
+
 if st.button("Clear cache"):
     st.cache_data.clear()
+    st.session_state["run"] = False
 
 if st.session_state.get("run"):
     with st.spinner("Running Atlas Radar..."):
@@ -1211,8 +1125,8 @@ if st.session_state.get("run"):
 
     st.markdown("---")
 
-    tab1, tab2, tab3 = st.tabs(
-        ["Selected Domain", "Phase 3 Watchlist", "Debug"]
+    tab1, tab2, tab3, tab4 = st.tabs(
+        ["Selected Domain", "Outreach Engine", "Phase 3 Watchlist", "Debug"]
     )
 
     with tab1:
@@ -1235,39 +1149,6 @@ if st.session_state.get("run"):
         )
 
     with tab2:
-        display_df = prepare_display_df(phase3_watchlist)
-        st.dataframe(
-            style_score_table(display_df),
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "NCT_Link": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
-                "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
-                "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
-            }
-        )
-
-        df_download_button(
-            phase3_watchlist,
-            f"atlas_radar_{mode.lower()}_phase3_watchlist.csv",
-            "Download Phase 3 Watchlist CSV"
-        )
-
-    with tab3:
-        st.write("Debug summary")
-        st.dataframe(debug_summary, use_container_width=True, hide_index=True)
-
-        if not error_df.empty:
-            st.write("Request errors")
-            st.dataframe(error_df, use_container_width=True, hide_index=True)
-
-        df_download_button(
-            full_df,
-            f"atlas_radar_{mode.lower()}_full.csv",
-            "Download Full CSV"
-        )
-
-        st.divider()
         st.subheader("Generate Outreach Email")
 
         email_df = selected_domain.copy()
@@ -1289,7 +1170,7 @@ if st.session_state.get("run"):
 
             if st.button("Generate Email"):
                 prompt = f"""
-Write a short 120-150 word, high-intelligence outreach email to a senior pharma stakeholder based on the clinical trial below. Your goal is to trigger a thoughtful reply or a referral.
+Write a short 120-150 word outreach email to a senior pharma stakeholder based on the clinical trial below. Your goal is to trigger a thoughtful reply or a referral.
 
 Context:
 Trial: {selected_row.get('NCT_Link', '')}
@@ -1299,47 +1180,40 @@ Title: {selected_row.get('Title', '')}
 Primary Outcome: {selected_row.get('PrimaryOutcome', '')}
 Commercial Hypothesis: {selected_row.get('CommercialHypothesis', '')}
 
-Write like a peer, not a vendor. Use a conversational, human tone appropriate for a peer email. 
-Soften the language slightly; avoid sounding formal, academic, or like a manuscript.
+Write like a peer, not a vendor.
+Use a conversational, human tone appropriate for a peer email.
+Avoid sounding formal, academic, or like a manuscript.
+Do not use sales language, frameworks, or words like "brief" or "quick".
 
-You may use light hedging (e.g. "I may be wrong", "it seems", "one question I had") to make the tone more open and less assertive.
+Start with a concrete observation about the trial design, endpoint, population, or measurement layer.
+Do not start with evaluative statements such as "X is the right layer" or "X is important".
 
-Avoid dense, compressed sentences; keep phrasing natural and readable in email form.
+Keep the email tight and selective:
+- one observation
+- one risk
+- one implication
 
-Write as if this is a thoughtful note to a colleague, not a publication.Start with a concrete observation about the trial design, endpoint, population, or measurement layer. 
-Do not start with evaluative statements (e.g. "X is the right layer", "X is important").
+Do not explain what biomarkers or endpoints measure.
+Assume the reader knows this already.
 
-Keep the email tight and selective. Do not explain every concept. 
-State one observation, one risk, and one implication. 
-Avoid listing multiple mechanisms or pathways; name at most one if necessary.
+Mention any specific biomarker, such as NfL, at most once.
+After introducing it, refer to it indirectly as "the marker", "that layer", or "that signal".
 
-Mention any specific biomarker (e.g. NfL) at most once. 
-After introducing it, refer to it indirectly (e.g. "the marker", "that layer").
-
-Avoid explanatory or didactic language. 
+Avoid explanatory or didactic language.
 Do not sound like a review or teaching text.
 Avoid phrases like "the implication is", "this means", or "in that setting".
-
 Prefer under-explaining over over-explaining.
 
-Write as if you noticed one specific tension in the trial, not as if you are explaining the disease or educating the reader. Mention any specific biomarker (e.g. NfL) at most once. Do not repeat it.
-After introducing it, refer to it indirectly (e.g. "the marker", "that layer"). Keep the email tight and selective. Do not explain every concept. 
-State one observation, one risk, and one implication. 
-Avoid listing multiple mechanisms or pathways; name at most one or two.
-Do not sound like a review or teaching text.
-Prefer under-explaining over over-explaining. No sales language, no frameworks. Do not use words like "brief" or "quick".
-
-Start with a concrete observation grounded in the trial design, endpoint, population, or measurement layer.
-
 Measurement logic:
-For ALS and MS, explicitly anchor the reasoning in NfL as the primary measurement layer before introducing any downstream or complementary layers.
-If a biomarker, imaging modality, clinical scale, endpoint, or molecular measurement is explicitly mentioned in the trial, anchor the email in that measurement and explain what it captures versus what it misses.
-If none is mentioned, infer the dominant measurement layer typically used in this disease area, such as NfL in ALS or MS, pTau217 or amyloid/tau PET in Alzheimers, alpha-synuclein in Parkinsons, HbA1c or CGM in diabetes, LDL-C or troponin in cardiovascular disease, eGFR or UACR in kidney disease, ctDNA, PD-L1, ORR or PFS in oncology, or cytokines and flow cytometry in immunology or cell therapy.
-Do not make abstract statements about biology or signal. Always tie the reasoning to one concrete measurement.
+For ALS and MS, anchor briefly in NfL, then move on without repeating it.
+For other disease areas, infer the dominant measurement layer typically used in that area only if needed.
 
-Translate the Commercial Hypothesis into one specific, non-obvious risk tailored to this trial. Embed Why Now implicitly through phase, scale, status, timing, or readout risk. Embed Why Us implicitly by hinting at pathway-level metabolomic resolution, without pitching.
+Translate the Commercial Hypothesis into one specific, non-obvious risk tailored to this trial.
+Hint at pathway-level metabolomic resolution only if it naturally helps explain the risk. Do not pitch.
 
-Include exactly one soft, open-ended question. Keep tone calm, precise, slightly tentative, high-status. No enthusiasm. No meeting request. No hard close.
+Include exactly one soft, open-ended question.
+Keep tone calm, precise, slightly tentative, and human.
+No enthusiasm. No meeting request. No hard close.
 
 End with this exact redirect sentence:
 If this sits elsewhere on your side, I would appreciate a pointer.
@@ -1353,3 +1227,36 @@ Output only subject line and email.
                 )
 
                 st.write(response.output_text)
+
+    with tab3:
+        display_df = prepare_display_df(phase3_watchlist)
+        st.dataframe(
+            style_score_table(display_df),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "NCT_Link": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
+                "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
+                "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
+            }
+        )
+
+        df_download_button(
+            phase3_watchlist,
+            f"atlas_radar_{mode.lower()}_phase3_watchlist.csv",
+            "Download Phase 3 Watchlist CSV"
+        )
+
+    with tab4:
+        st.write("Debug summary")
+        st.dataframe(debug_summary, use_container_width=True, hide_index=True)
+
+        if not error_df.empty:
+            st.write("Request errors")
+            st.dataframe(error_df, use_container_width=True, hide_index=True)
+
+        df_download_button(
+            full_df,
+            f"atlas_radar_{mode.lower()}_full.csv",
+            "Download Full CSV"
+        )
