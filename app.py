@@ -1268,7 +1268,7 @@ if st.session_state.get("run"):
             "Download Full CSV"
         )
 
-        st.divider()
+                        st.divider()
         st.subheader("Generate Outreach Email")
 
         email_df = selected_domain.copy()
@@ -1276,7 +1276,7 @@ if st.session_state.get("run"):
         if email_df.empty:
             st.info("No trials available for email generation.")
         else:
-            email_df.index
+            selected_index = st.selectbox(
                 "Select Trial",
                 email_df.index,
                 format_func=lambda i: (
