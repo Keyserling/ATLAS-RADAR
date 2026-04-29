@@ -1211,148 +1211,148 @@ if st.session_state.get("run"):
 
     st.markdown("---")
 
-    tab1, tab2, tab3, tab4 = st.tabs(
-    ["Selected Domain", "Outreach Engine", "Phase 3 Watchlist", "Debug"]
-)
-
-# ----------------------------
-# TAB 1 — SELECTED DOMAIN
-# ----------------------------
-with tab1:
-    display_df = prepare_display_df(selected_domain)
-    st.dataframe(
-        style_score_table(display_df),
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "NCT_Link": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
-            "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
-            "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
-        }
+        tab1, tab2, tab3, tab4 = st.tabs(
+        ["Selected Domain", "Outreach Engine", "Phase 3 Watchlist", "Debug"]
     )
-
-    df_download_button(
-        selected_domain,
-        f"atlas_radar_{mode.lower()}_{domain.lower().replace(' ', '_').replace('/', '').replace('__', '_')}.csv",
-        "Download Selected Domain CSV"
-    )
-
-# ----------------------------
-# TAB 2 — OUTREACH ENGINE
-# ----------------------------
-with tab2:
-    st.subheader("Outreach Engine")
-
-    email_df = selected_domain.copy()
-
-    if email_df.empty:
-        st.info("No trials available for email generation.")
-    else:
-        selected_index = st.selectbox(
-            "Select Trial",
-            email_df.index,
-            format_func=lambda i: (
-                f"{email_df.loc[i].get('LeadSponsor', '')} | "
-                f"{email_df.loc[i].get('PhaseBucket', '')} | "
-                f"{str(email_df.loc[i].get('Title', ''))[:80]}"
-            )
+    
+    # ----------------------------
+    # TAB 1 — SELECTED DOMAIN
+    # ----------------------------
+    with tab1:
+        display_df = prepare_display_df(selected_domain)
+        st.dataframe(
+            style_score_table(display_df),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "NCT_Link": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
+                "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
+                "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
+            }
         )
-
-        selected_row = email_df.loc[selected_index]
-
-        if st.button("Generate Email"):
-            prompt = f"""
-Write a short 120-150 word outreach email to a senior pharma stakeholder based on the clinical trial below.
-
-Context:
-Trial: {selected_row.get('NCT_Link', '')}
-Company: {selected_row.get('LeadSponsor', '')}
-Phase: {selected_row.get('PhaseBucket', '')}
-Title: {selected_row.get('Title', '')}
-Primary Outcome: {selected_row.get('PrimaryOutcome', '')}
-Commercial Hypothesis: {selected_row.get('CommercialHypothesis', '')}
-
-Write like a peer, not a vendor.
-
-Use a conversational, human tone appropriate for a peer email.
-Avoid sounding formal, academic, or like a manuscript.
-
-Start with a concrete observation about the trial design or readout.
-Do not start with evaluative statements.
-
-Keep the email tight and selective:
-- one observation
-- one risk
-- one implication
-
-Do not explain what biomarkers or endpoints measure.
-Assume the reader knows this.
-
-Mention any specific biomarker (e.g. NfL) at most once.
-After introducing it, refer to it indirectly.
-
-Avoid listing multiple mechanisms; name at most one.
-
-Avoid phrases like:
-"the implication is", "this means", "in that setting"
-
-Prefer under-explaining over over-explaining.
-
-Measurement logic:
-For ALS and MS, anchor briefly in NfL, then move on without repeating it.
-
-Translate the Commercial Hypothesis into one specific, non-obvious risk.
-
-Include exactly one soft, open-ended question.
-
-End with:
-If this sits elsewhere on your side, I would appreciate a pointer.
-
-Output only subject line and email.
-"""
-
-            response = client.responses.create(
-                model="gpt-5.5",
-                input=prompt
+    
+        df_download_button(
+            selected_domain,
+            f"atlas_radar_{mode.lower()}_{domain.lower().replace(' ', '_').replace('/', '').replace('__', '_')}.csv",
+            "Download Selected Domain CSV"
+        )
+    
+    # ----------------------------
+    # TAB 2 — OUTREACH ENGINE
+    # ----------------------------
+    with tab2:
+        st.subheader("Outreach Engine")
+    
+        email_df = selected_domain.copy()
+    
+        if email_df.empty:
+            st.info("No trials available for email generation.")
+        else:
+            selected_index = st.selectbox(
+                "Select Trial",
+                email_df.index,
+                format_func=lambda i: (
+                    f"{email_df.loc[i].get('LeadSponsor', '')} | "
+                    f"{email_df.loc[i].get('PhaseBucket', '')} | "
+                    f"{str(email_df.loc[i].get('Title', ''))[:80]}"
+                )
             )
-
-            st.write(response.output_text)
-
-# ----------------------------
-# TAB 3 — PHASE 3 WATCHLIST
-# ----------------------------
-with tab3:
-    display_df = prepare_display_df(phase3_watchlist)
-    st.dataframe(
-        style_score_table(display_df),
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "NCT_Link": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
-            "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
-            "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
-        }
-    )
-
-    df_download_button(
-        phase3_watchlist,
-        f"atlas_radar_{mode.lower()}_phase3_watchlist.csv",
-        "Download Phase 3 Watchlist CSV"
-    )
-
-# ----------------------------
-# TAB 4 — DEBUG
-# ----------------------------
-with tab4:
-    st.write("Debug summary")
-    st.dataframe(debug_summary, use_container_width=True, hide_index=True)
-
-    if not error_df.empty:
-        st.write("Request errors")
-        st.dataframe(error_df, use_container_width=True, hide_index=True)
-
-    df_download_button(
-        full_df,
-        f"atlas_radar_{mode.lower()}_full.csv",
-        "Download Full CSV"
+    
+            selected_row = email_df.loc[selected_index]
+    
+            if st.button("Generate Email"):
+                prompt = f"""
+    Write a short 120-150 word outreach email to a senior pharma stakeholder based on the clinical trial below.
+    
+    Context:
+    Trial: {selected_row.get('NCT_Link', '')}
+    Company: {selected_row.get('LeadSponsor', '')}
+    Phase: {selected_row.get('PhaseBucket', '')}
+    Title: {selected_row.get('Title', '')}
+    Primary Outcome: {selected_row.get('PrimaryOutcome', '')}
+    Commercial Hypothesis: {selected_row.get('CommercialHypothesis', '')}
+    
+    Write like a peer, not a vendor.
+    
+    Use a conversational, human tone appropriate for a peer email.
+    Avoid sounding formal, academic, or like a manuscript.
+    
+    Start with a concrete observation about the trial design or readout.
+    Do not start with evaluative statements.
+    
+    Keep the email tight and selective:
+    - one observation
+    - one risk
+    - one implication
+    
+    Do not explain what biomarkers or endpoints measure.
+    Assume the reader knows this.
+    
+    Mention any specific biomarker (e.g. NfL) at most once.
+    After introducing it, refer to it indirectly.
+    
+    Avoid listing multiple mechanisms; name at most one.
+    
+    Avoid phrases like:
+    "the implication is", "this means", "in that setting"
+    
+    Prefer under-explaining over over-explaining.
+    
+    Measurement logic:
+    For ALS and MS, anchor briefly in NfL, then move on without repeating it.
+    
+    Translate the Commercial Hypothesis into one specific, non-obvious risk.
+    
+    Include exactly one soft, open-ended question.
+    
+    End with:
+    If this sits elsewhere on your side, I would appreciate a pointer.
+    
+    Output only subject line and email.
+    """
+    
+                response = client.responses.create(
+                    model="gpt-5.5",
+                    input=prompt
+                )
+    
+                st.write(response.output_text)
+    
+    # ----------------------------
+    # TAB 3 — PHASE 3 WATCHLIST
+    # ----------------------------
+    with tab3:
+        display_df = prepare_display_df(phase3_watchlist)
+        st.dataframe(
+            style_score_table(display_df),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "NCT_Link": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
+                "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
+                "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
+            }
+        )
+    
+        df_download_button(
+            phase3_watchlist,
+            f"atlas_radar_{mode.lower()}_phase3_watchlist.csv",
+            "Download Phase 3 Watchlist CSV"
+        )
+    
+    # ----------------------------
+    # TAB 4 — DEBUG
+    # ----------------------------
+    with tab4:
+        st.write("Debug summary")
+        st.dataframe(debug_summary, use_container_width=True, hide_index=True)
+    
+        if not error_df.empty:
+            st.write("Request errors")
+            st.dataframe(error_df, use_container_width=True, hide_index=True)
+    
+        df_download_button(
+            full_df,
+            f"atlas_radar_{mode.lower()}_full.csv",
+            "Download Full CSV"
     )
