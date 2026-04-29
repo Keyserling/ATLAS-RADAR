@@ -1014,10 +1014,10 @@ def fetch_trials(mode: str, logic: str, controls_tuple: tuple):
 # =========================================================
 
 st.markdown("""
-<div style="padding:16px;border-radius:14px;background:#0f172a;color:white;margin-bottom:16px;">
-  <h1 style="margin-bottom:4px;">🛰️ Atlas Radar</h1>
-  <p style="margin:0;color:#cbd5e1;">by Helmut</p>
-  <p style="margin:0;color:#94a3b8;font-size:12px;">ClinicalTrials.gov signal radar for commercial entry points</p>
+<div style="padding:22px 26px;border-radius:18px;background:linear-gradient(135deg,#020617 0%,#0f172a 55%,#111827 100%);border:1px solid #1e293b;margin-bottom:18px;">
+  <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#38bdf8;margin-bottom:8px;">Atlas Radar</div>
+  <div style="font-size:34px;font-weight:700;color:#f8fafc;line-height:1.1;margin-bottom:8px;">Clinical Signal Intelligence</div>
+  <div style="font-size:14px;color:#94a3b8;max-width:760px;">Trial-trigger radar for measurement gaps, translational risk, and commercial entry points.</div>
 </div>
 """, unsafe_allow_html=True)
 
