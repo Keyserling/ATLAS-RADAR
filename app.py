@@ -1296,7 +1296,7 @@ Translate the Commercial Hypothesis into one specific, non-obvious risk tailored
 Include exactly one soft, open-ended question. Keep tone calm, precise, slightly tentative, high-status. No enthusiasm. No meeting request. No hard close.
 
 End with this exact redirect sentence:
-If this sits elsewhere on your side, I'd appreciate a pointer.
+If this sits elsewhere on your side, I would appreciate a pointer.
 
 Output only subject line and email.
 """
