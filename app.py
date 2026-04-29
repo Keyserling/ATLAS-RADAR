@@ -1260,6 +1260,7 @@ if run:
             "Download Full CSV"
         )
 # sichere Spaltenwahl (verhindert Fehler)
+display_df = df.copy()
 selected_index = st.selectbox(
     "Select Trial",
     display_df.index,
