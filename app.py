@@ -1265,7 +1265,7 @@ selected_trial = st.text_input("Paste NCT link")
 if st.button("Generate Email"):
     response = client.responses.create(
         model="gpt-5.5",
-        input=input=f"""
+        input=f"""
 Write a short (120–150 words), high-intelligence outreach email to a senior pharma stakeholder based on the clinical trial below. Your goal is to trigger a thoughtful reply or a referral.
 
 Context:
