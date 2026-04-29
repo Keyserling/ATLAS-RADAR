@@ -1284,7 +1284,7 @@ Commercial Hypothesis: {selected_row['CommercialHypothesis']}
 
 Write like a peer, not a vendor. No sales language, no frameworks. Do not use words like "brief" or "quick".
 
-Start with a concrete observation grounded in the trial design, endpoint, population, or measurement layer."""
+Start with a concrete observation grounded in the trial design, endpoint, population, or measurement layer.
 
 Measurement logic:
 If a biomarker, imaging modality, clinical scale, endpoint, or molecular measurement is explicitly mentioned in the trial, anchor the email in that measurement and explain what it captures vs what it misses.
