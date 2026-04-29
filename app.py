@@ -1299,7 +1299,8 @@ Title: {selected_row.get('Title', '')}
 Primary Outcome: {selected_row.get('PrimaryOutcome', '')}
 Commercial Hypothesis: {selected_row.get('CommercialHypothesis', '')}
 
-Write like a peer, not a vendor. Keep the email tight and selective. Do not explain every concept. 
+Write like a peer, not a vendor. Mention any specific biomarker (e.g. NfL) at most once. Do not repeat it.
+After introducing it, refer to it indirectly (e.g. "the marker", "that layer"). Keep the email tight and selective. Do not explain every concept. 
 State one observation, one risk, and one implication. 
 Avoid listing multiple mechanisms or pathways; name at most one or two.
 Do not sound like a review or teaching text.
