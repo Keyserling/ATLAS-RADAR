@@ -1259,7 +1259,6 @@ if run:
             f"atlas_radar_{mode.lower()}_full.csv",
             "Download Full CSV"
         )
-st.button("Generate Email")
 
 if st.button("Generate Email"):
     response = client.responses.create(
