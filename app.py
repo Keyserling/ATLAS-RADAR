@@ -1259,6 +1259,10 @@ if run:
             f"atlas_radar_{mode.lower()}_full.csv",
             "Download Full CSV"
         )
+selected_trial = st.selectbox(
+    "Select Trial",
+    df["NCT_Link"]
+)
 
 if st.button("Generate Email"):
     response = client.responses.create(
