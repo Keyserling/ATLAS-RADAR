@@ -1254,64 +1254,64 @@ if run:
             st.write("Request errors")
             st.dataframe(error_df, use_container_width=True, hide_index=True)
 
-           df_download_button(
-        full_df,
-        f"atlas_radar_{mode.lower()}_full.csv",
-        "Download Full CSV"
-    )
-
-    # Email generator
-    email_df = full_df.copy()
-
-    if email_df.empty:
-        st.info("No trials available for email generation.")
-    else:
-        selected_index = st.selectbox(
-            "Select Trial",
-            email_df.index,
-            format_func=lambda i: (
-                f"{email_df.loc[i].get('LeadSponsor', '')} | "
-                f"{email_df.loc[i].get('PhaseBucket', '')} | "
-                f"{str(email_df.loc[i].get('Title', ''))[:80]}"
-            )
+               df_download_button(
+            full_df,
+            f"atlas_radar_{mode.lower()}_full.csv",
+            "Download Full CSV"
         )
-
-        selected_row = email_df.loc[selected_index]
-
-        if st.button("Generate Email"):
-            prompt = f"""
-Write a short 120-150 word, high-intelligence outreach email to a senior pharma stakeholder based on the clinical trial below. Your goal is to trigger a thoughtful reply or a referral.
-
-Context:
-Trial: {selected_row.get('NCT_Link', '')}
-Company: {selected_row.get('LeadSponsor', '')}
-Phase: {selected_row.get('PhaseBucket', '')}
-Title: {selected_row.get('Title', '')}
-Primary Outcome: {selected_row.get('PrimaryOutcome', '')}
-Commercial Hypothesis: {selected_row.get('CommercialHypothesis', '')}
-
-Write like a peer, not a vendor. No sales language, no frameworks. Do not use words like "brief" or "quick".
-
-Start with a concrete observation grounded in the trial design, endpoint, population, or measurement layer.
-
-Measurement logic:
-If a biomarker, imaging modality, clinical scale, endpoint, or molecular measurement is explicitly mentioned in the trial, anchor the email in that measurement and explain what it captures versus what it misses.
-If none is mentioned, infer the dominant measurement layer typically used in this disease area, such as NfL in ALS or MS, pTau217 or amyloid/tau PET in Alzheimers, alpha-synuclein in Parkinsons, HbA1c or CGM in diabetes, LDL-C or troponin in cardiovascular disease, eGFR or UACR in kidney disease, ctDNA, PD-L1, ORR or PFS in oncology, or cytokines and flow cytometry in immunology or cell therapy.
-Do not make abstract statements about biology or signal. Always tie the reasoning to one concrete measurement.
-
-Translate the Commercial Hypothesis into one specific, non-obvious risk tailored to this trial. Embed Why Now implicitly through phase, scale, status, timing, or readout risk. Embed Why Us implicitly by hinting at pathway-level metabolomic resolution, without pitching.
-
-Include exactly one soft, open-ended question. Keep tone calm, precise, slightly tentative, high-status. No enthusiasm. No meeting request. No hard close.
-
-End with this exact redirect sentence:
-If this sits elsewhere on your side, I would appreciate a pointer.
-
-Output only subject line and email.
-"""
-
-            response = client.responses.create(
-                model="gpt-5.5",
-                input=prompt
+    
+        # Email generator
+        email_df = full_df.copy()
+    
+        if email_df.empty:
+            st.info("No trials available for email generation.")
+        else:
+            selected_index = st.selectbox(
+                "Select Trial",
+                email_df.index,
+                format_func=lambda i: (
+                    f"{email_df.loc[i].get('LeadSponsor', '')} | "
+                    f"{email_df.loc[i].get('PhaseBucket', '')} | "
+                    f"{str(email_df.loc[i].get('Title', ''))[:80]}"
+                )
             )
-
-            st.write(response.output_text)
+    
+            selected_row = email_df.loc[selected_index]
+    
+            if st.button("Generate Email"):
+                prompt = f"""
+    Write a short 120-150 word, high-intelligence outreach email to a senior pharma stakeholder based on the clinical trial below. Your goal is to trigger a thoughtful reply or a referral.
+    
+    Context:
+    Trial: {selected_row.get('NCT_Link', '')}
+    Company: {selected_row.get('LeadSponsor', '')}
+    Phase: {selected_row.get('PhaseBucket', '')}
+    Title: {selected_row.get('Title', '')}
+    Primary Outcome: {selected_row.get('PrimaryOutcome', '')}
+    Commercial Hypothesis: {selected_row.get('CommercialHypothesis', '')}
+    
+    Write like a peer, not a vendor. No sales language, no frameworks. Do not use words like "brief" or "quick".
+    
+    Start with a concrete observation grounded in the trial design, endpoint, population, or measurement layer.
+    
+    Measurement logic:
+    If a biomarker, imaging modality, clinical scale, endpoint, or molecular measurement is explicitly mentioned in the trial, anchor the email in that measurement and explain what it captures versus what it misses.
+    If none is mentioned, infer the dominant measurement layer typically used in this disease area, such as NfL in ALS or MS, pTau217 or amyloid/tau PET in Alzheimers, alpha-synuclein in Parkinsons, HbA1c or CGM in diabetes, LDL-C or troponin in cardiovascular disease, eGFR or UACR in kidney disease, ctDNA, PD-L1, ORR or PFS in oncology, or cytokines and flow cytometry in immunology or cell therapy.
+    Do not make abstract statements about biology or signal. Always tie the reasoning to one concrete measurement.
+    
+    Translate the Commercial Hypothesis into one specific, non-obvious risk tailored to this trial. Embed Why Now implicitly through phase, scale, status, timing, or readout risk. Embed Why Us implicitly by hinting at pathway-level metabolomic resolution, without pitching.
+    
+    Include exactly one soft, open-ended question. Keep tone calm, precise, slightly tentative, high-status. No enthusiasm. No meeting request. No hard close.
+    
+    End with this exact redirect sentence:
+    If this sits elsewhere on your side, I would appreciate a pointer.
+    
+    Output only subject line and email.
+    """
+    
+                response = client.responses.create(
+                    model="gpt-5.5",
+                    input=prompt
+                )
+    
+                st.write(response.output_text)
