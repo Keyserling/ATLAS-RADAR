@@ -1262,33 +1262,33 @@ if st.session_state.get("run"):
             st.write("Request errors")
             st.dataframe(error_df, use_container_width=True, hide_index=True)
 
-        df_download_button(
-            full_df,
-            f"atlas_radar_{mode.lower()}_full.csv",
-            "Download Full CSV"
-        )
-
-                        st.divider()
-        st.subheader("Generate Outreach Email")
-
-        email_df = selected_domain.copy()
-
-        if email_df.empty:
-            st.info("No trials available for email generation.")
-        else:
-            selected_index = st.selectbox(
-                "Select Trial",
-                email_df.index,
-                format_func=lambda i: (
-                    f"{email_df.loc[i].get('LeadSponsor', '')} | "
-                    f"{email_df.loc[i].get('PhaseBucket', '')} | "
-                    f"{str(email_df.loc[i].get('Title', ''))[:80]}"
+      df_download_button(
+          full_df,
+          f"atlas_radar_{mode.lower()}_full.csv",
+          "Download Full CSV"
+      )
+    
+      st.divider()
+      st.subheader("Generate Outreach Email")
+    
+      email_df = selected_domain.copy()
+    
+            if email_df.empty:
+                st.info("No trials available for email generation.")
+            else:
+                selected_index = st.selectbox(
+                    "Select Trial",
+                    email_df.index,
+                    format_func=lambda i: (
+                        f"{email_df.loc[i].get('LeadSponsor', '')} | "
+                        f"{email_df.loc[i].get('PhaseBucket', '')} | "
+                        f"{str(email_df.loc[i].get('Title', ''))[:80]}"
+                    )
                 )
-            )
-
-            selected_row = email_df.loc[selected_index]
-
-            if st.button("Generate Email"):
+    
+                selected_row = email_df.loc[selected_index]
+    
+                if st.button("Generate Email"):      
                 prompt = f"""
 Write a short 120-150 word, high-intelligence outreach email to a senior pharma stakeholder based on the clinical trial below. Your goal is to trigger a thoughtful reply or a referral.
 
