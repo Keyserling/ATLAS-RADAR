@@ -1299,7 +1299,14 @@ Title: {selected_row.get('Title', '')}
 Primary Outcome: {selected_row.get('PrimaryOutcome', '')}
 Commercial Hypothesis: {selected_row.get('CommercialHypothesis', '')}
 
-Write like a peer, not a vendor. Start with a concrete observation about the trial design, endpoint, population, or measurement layer. 
+Write like a peer, not a vendor. Use a conversational, human tone appropriate for a peer email. 
+Soften the language slightly; avoid sounding formal, academic, or like a manuscript.
+
+You may use light hedging (e.g. "I may be wrong", "it seems", "one question I had") to make the tone more open and less assertive.
+
+Avoid dense, compressed sentences; keep phrasing natural and readable in email form.
+
+Write as if this is a thoughtful note to a colleague, not a publication.Start with a concrete observation about the trial design, endpoint, population, or measurement layer. 
 Do not start with evaluative statements (e.g. "X is the right layer", "X is important").
 
 Keep the email tight and selective. Do not explain every concept. 
