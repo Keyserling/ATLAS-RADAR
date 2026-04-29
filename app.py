@@ -1305,9 +1305,13 @@ Write like a peer, not a vendor. No sales language, no frameworks. Do not use wo
 Start with a concrete observation grounded in the trial design, endpoint, population, or measurement layer.
 
 Measurement logic:
-If a biomarker, imaging modality, clinical scale, endpoint, or molecular measurement is explicitly mentioned in the trial, anchor the email in that measurement and explain what it captures versus what it misses.
-If none is mentioned, infer the dominant measurement layer typically used in this disease area, such as NfL in ALS or MS, pTau217 or amyloid/tau PET in Alzheimers, alpha-synuclein in Parkinsons, HbA1c or CGM in diabetes, LDL-C or troponin in cardiovascular disease, eGFR or UACR in kidney disease, ctDNA, PD-L1, ORR or PFS in oncology, or cytokines and flow cytometry in immunology or cell therapy.
-Do not make abstract statements about biology or signal. Always tie the reasoning to one concrete measurement.
+Always anchor the email in one concrete biological measurement layer.
+
+If a biomarker, imaging modality, clinical scale, or molecular readout is explicitly mentioned in the trial, use that measurement and explain what it captures vs what it misses.
+
+If the trial relies primarily on functional or composite endpoints (e.g. ALSFRS-R, CAFS), you must introduce the dominant biological measurement layer used in this disease area (e.g. NfL in ALS/MS, pTau217 in Alzheimer’s, HbA1c in diabetes) and explain the gap between the clinical endpoint and the underlying biology.
+
+Do not stay at the level of clinical endpoints alone. Always bridge to a molecular or pathway-level readout. Always tie the reasoning to one concrete measurement.
 
 Translate the Commercial Hypothesis into one specific, non-obvious risk tailored to this trial. Embed Why Now implicitly through phase, scale, status, timing, or readout risk. Embed Why Us implicitly by hinting at pathway-level metabolomic resolution, without pitching.
 
