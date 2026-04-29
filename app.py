@@ -1259,9 +1259,15 @@ if run:
             f"atlas_radar_{mode.lower()}_full.csv",
             "Download Full CSV"
         )
+# sichere Spaltenwahl (verhindert Fehler)
+if "NCT_Link" in full_df.columns:
+    trial_options = full_df["NCT_Link"]
+else:
+    trial_options = full_df.iloc[:, 0]
+
 selected_trial = st.selectbox(
     "Select Trial",
-    full_df["NCT_Link"]
+    trial_options
 )
 
 if st.button("Generate Email"):
