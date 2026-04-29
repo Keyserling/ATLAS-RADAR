@@ -1175,7 +1175,11 @@ if st.button("Clear cache"):
 
 if run:
     with st.spinner("Running Atlas Radar..."):
-        full_df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df = fetch_trials(mode, logic, controls_tuple)
+        full_df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df = fetch_trials(
+            mode,
+            logic,
+            controls_tuple
+        )
 
     selected_domain = build_domain_table(full_df, domain)
 
@@ -1209,18 +1213,23 @@ if run:
         ["Selected Domain", "Phase 3 Watchlist", "Debug"]
     )
 
-    with tab3:
-        st.write("Debug summary")
-        st.dataframe(debug_summary, use_container_width=True, hide_index=True)
-
-        if not error_df.empty:
-            st.write("Request errors")
-            st.dataframe(error_df, use_container_width=True, hide_index=True)
+    with tab1:
+        display_df = prepare_display_df(selected_domain)
+        st.dataframe(
+            style_score_table(display_df),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "NCT_Link": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
+                "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
+                "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
+            }
+        )
 
         df_download_button(
-            full_df,
-            f"atlas_radar_{mode.lower()}_full.csv",
-            "Download Full CSV"
+            selected_domain,
+            f"atlas_radar_{mode.lower()}_{domain.lower().replace(' ', '_').replace('/', '').replace('__', '_')}.csv",
+            "Download Selected Domain CSV"
         )
 
     with tab2:
@@ -1235,47 +1244,49 @@ if run:
                 "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
             }
         )
+
         df_download_button(
             phase3_watchlist,
             f"atlas_radar_{mode.lower()}_phase3_watchlist.csv",
             "Download Phase 3 Watchlist CSV"
         )
+
     with tab3:
-    st.write("Debug summary")
-    st.dataframe(debug_summary, use_container_width=True, hide_index=True)
+        st.write("Debug summary")
+        st.dataframe(debug_summary, use_container_width=True, hide_index=True)
 
-    if not error_df.empty:
-        st.write("Request errors")
-        st.dataframe(error_df, use_container_width=True, hide_index=True)
+        if not error_df.empty:
+            st.write("Request errors")
+            st.dataframe(error_df, use_container_width=True, hide_index=True)
 
-    df_download_button(
-        full_df,
-        f"atlas_radar_{mode.lower()}_full.csv",
-        "Download Full CSV"
-    )
-
-    st.divider()
-    st.subheader("Generate Outreach Email")
-
-    email_df = full_df.copy()
-
-    if email_df.empty:
-        st.info("No trials available for email generation.")
-    else:
-        selected_index = st.selectbox(
-            "Select Trial",
-            email_df.index,
-            format_func=lambda i: (
-                f"{email_df.loc[i].get('LeadSponsor', '')} | "
-                f"{email_df.loc[i].get('PhaseBucket', '')} | "
-                f"{str(email_df.loc[i].get('Title', ''))[:80]}"
-            )
+        df_download_button(
+            full_df,
+            f"atlas_radar_{mode.lower()}_full.csv",
+            "Download Full CSV"
         )
 
-        selected_row = email_df.loc[selected_index]
+        st.divider()
+        st.subheader("Generate Outreach Email")
 
-        if st.button("Generate Email"):
-            prompt = f"""
+        email_df = full_df.copy()
+
+        if email_df.empty:
+            st.info("No trials available for email generation.")
+        else:
+            selected_index = st.selectbox(
+                "Select Trial",
+                email_df.index,
+                format_func=lambda i: (
+                    f"{email_df.loc[i].get('LeadSponsor', '')} | "
+                    f"{email_df.loc[i].get('PhaseBucket', '')} | "
+                    f"{str(email_df.loc[i].get('Title', ''))[:80]}"
+                )
+            )
+
+            selected_row = email_df.loc[selected_index]
+
+            if st.button("Generate Email"):
+                prompt = f"""
 Write a short 120-150 word, high-intelligence outreach email to a senior pharma stakeholder based on the clinical trial below. Your goal is to trigger a thoughtful reply or a referral.
 
 Context:
@@ -1305,11 +1316,9 @@ If this sits elsewhere on your side, I would appreciate a pointer.
 Output only subject line and email.
 """
 
-            response = client.responses.create(
-                model="gpt-5.5",
-                input=prompt
-            )
+                response = client.responses.create(
+                    model="gpt-5.5",
+                    input=prompt
+                )
 
-            st.write(response.output_text)
-    
                 st.write(response.output_text)
