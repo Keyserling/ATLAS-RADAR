@@ -1260,19 +1260,11 @@ if run:
             "Download Full CSV"
         )
 # sichere Spaltenwahl (verhindert Fehler)
-if "NCT_Link" in full_df.columns:
-    trial_options = full_df["NCT_Link"]
-else:
-    trial_options = full_df.iloc[:, 0]
-
-selected_trial = st.selectbox(
-    "Select Trial",
-    trial_options
-)
+selected_trial = st.text_input("Paste NCT link")
 
 if st.button("Generate Email"):
     response = client.responses.create(
         model="gpt-5.5",
-        input=f"Write a short pharma outreach email for this trial: {selected_trial}"
+        input=f"Write a short pharma outreach email for this clinical trial: {selected_trial}"
     )
     st.write(response.output_text)
