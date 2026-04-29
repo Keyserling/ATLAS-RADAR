@@ -1,4 +1,7 @@
+from openai import OpenAI
+import streamlit as st
 
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 import io
 import re
 import time
@@ -1256,3 +1259,11 @@ if run:
             f"atlas_radar_{mode.lower()}_full.csv",
             "Download Full CSV"
         )
+st.button("Generate Email")
+
+if st.button("Generate Email"):
+    response = client.responses.create(
+        model="gpt-5.5",
+        input="Write a short pharma outreach email."
+    )
+    st.write(response.output_text)
