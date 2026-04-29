@@ -1265,6 +1265,23 @@ selected_trial = st.text_input("Paste NCT link")
 if st.button("Generate Email"):
     response = client.responses.create(
         model="gpt-5.5",
-        input=f"Write a short pharma outreach email for this clinical trial: {selected_trial}"
+        input=f"""
+Write a short (120–150 words), high-intelligence outreach email to a senior pharma stakeholder.
+
+Context:
+Trial: {selected_trial}
+
+Write like a peer, not a vendor. No sales language, no frameworks.
+
+Start with a concrete observation about the trial design or endpoint.
+Identify one non-obvious risk or gap.
+Frame it as a genuine curiosity, not a claim.
+
+Include exactly one soft, open-ended question.
+
+Keep tone calm, precise, slightly tentative, high-status.
+
+End with a natural redirect sentence if this sits with someone else.
+"""
     )
     st.write(response.output_text)
