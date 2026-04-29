@@ -1170,6 +1170,9 @@ controls_tuple = tuple(sorted(controls.items()))
 
 run = st.button("Run Atlas Radar", type="primary", use_container_width=True)
 
+if run:
+    st.session_state["run"] = True
+
 if st.button("Clear cache"):
     st.cache_data.clear()
 
