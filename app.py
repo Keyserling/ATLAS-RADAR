@@ -1211,13 +1211,10 @@ if st.session_state.get("run"):
 
     st.markdown("---")
 
-        tab1, tab2, tab3, tab4 = st.tabs(
-        ["Selected Domain", "Outreach Engine", "Phase 3 Watchlist", "Debug"]
+    tab1, tab2, tab3 = st.tabs(
+        ["Selected Domain", "Phase 3 Watchlist", "Debug"]
     )
-    
-    # ----------------------------
-    # TAB 1 — SELECTED DOMAIN
-    # ----------------------------
+
     with tab1:
         display_df = prepare_display_df(selected_domain)
         st.dataframe(
@@ -1230,21 +1227,51 @@ if st.session_state.get("run"):
                 "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
             }
         )
-    
+
         df_download_button(
             selected_domain,
             f"atlas_radar_{mode.lower()}_{domain.lower().replace(' ', '_').replace('/', '').replace('__', '_')}.csv",
             "Download Selected Domain CSV"
         )
-    
-    # ----------------------------
-    # TAB 2 — OUTREACH ENGINE
-    # ----------------------------
+
     with tab2:
-        st.subheader("Outreach Engine")
-    
+        display_df = prepare_display_df(phase3_watchlist)
+        st.dataframe(
+            style_score_table(display_df),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "NCT_Link": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
+                "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
+                "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
+            }
+        )
+
+        df_download_button(
+            phase3_watchlist,
+            f"atlas_radar_{mode.lower()}_phase3_watchlist.csv",
+            "Download Phase 3 Watchlist CSV"
+        )
+
+    with tab3:
+        st.write("Debug summary")
+        st.dataframe(debug_summary, use_container_width=True, hide_index=True)
+
+        if not error_df.empty:
+            st.write("Request errors")
+            st.dataframe(error_df, use_container_width=True, hide_index=True)
+
+        df_download_button(
+            full_df,
+            f"atlas_radar_{mode.lower()}_full.csv",
+            "Download Full CSV"
+        )
+
+        st.divider()
+        st.subheader("Generate Outreach Email")
+
         email_df = selected_domain.copy()
-    
+
         if email_df.empty:
             st.info("No trials available for email generation.")
         else:
@@ -1257,102 +1284,72 @@ if st.session_state.get("run"):
                     f"{str(email_df.loc[i].get('Title', ''))[:80]}"
                 )
             )
-    
+
             selected_row = email_df.loc[selected_index]
-    
+
             if st.button("Generate Email"):
                 prompt = f"""
-    Write a short 120-150 word outreach email to a senior pharma stakeholder based on the clinical trial below.
-    
-    Context:
-    Trial: {selected_row.get('NCT_Link', '')}
-    Company: {selected_row.get('LeadSponsor', '')}
-    Phase: {selected_row.get('PhaseBucket', '')}
-    Title: {selected_row.get('Title', '')}
-    Primary Outcome: {selected_row.get('PrimaryOutcome', '')}
-    Commercial Hypothesis: {selected_row.get('CommercialHypothesis', '')}
-    
-    Write like a peer, not a vendor.
-    
-    Use a conversational, human tone appropriate for a peer email.
-    Avoid sounding formal, academic, or like a manuscript.
-    
-    Start with a concrete observation about the trial design or readout.
-    Do not start with evaluative statements.
-    
-    Keep the email tight and selective:
-    - one observation
-    - one risk
-    - one implication
-    
-    Do not explain what biomarkers or endpoints measure.
-    Assume the reader knows this.
-    
-    Mention any specific biomarker (e.g. NfL) at most once.
-    After introducing it, refer to it indirectly.
-    
-    Avoid listing multiple mechanisms; name at most one.
-    
-    Avoid phrases like:
-    "the implication is", "this means", "in that setting"
-    
-    Prefer under-explaining over over-explaining.
-    
-    Measurement logic:
-    For ALS and MS, anchor briefly in NfL, then move on without repeating it.
-    
-    Translate the Commercial Hypothesis into one specific, non-obvious risk.
-    
-    Include exactly one soft, open-ended question.
-    
-    End with:
-    If this sits elsewhere on your side, I would appreciate a pointer.
-    
-    Output only subject line and email.
-    """
-    
+Write a short 120-150 word, high-intelligence outreach email to a senior pharma stakeholder based on the clinical trial below. Your goal is to trigger a thoughtful reply or a referral.
+
+Context:
+Trial: {selected_row.get('NCT_Link', '')}
+Company: {selected_row.get('LeadSponsor', '')}
+Phase: {selected_row.get('PhaseBucket', '')}
+Title: {selected_row.get('Title', '')}
+Primary Outcome: {selected_row.get('PrimaryOutcome', '')}
+Commercial Hypothesis: {selected_row.get('CommercialHypothesis', '')}
+
+Write like a peer, not a vendor. Use a conversational, human tone appropriate for a peer email. 
+Soften the language slightly; avoid sounding formal, academic, or like a manuscript.
+
+You may use light hedging (e.g. "I may be wrong", "it seems", "one question I had") to make the tone more open and less assertive.
+
+Avoid dense, compressed sentences; keep phrasing natural and readable in email form.
+
+Write as if this is a thoughtful note to a colleague, not a publication.Start with a concrete observation about the trial design, endpoint, population, or measurement layer. 
+Do not start with evaluative statements (e.g. "X is the right layer", "X is important").
+
+Keep the email tight and selective. Do not explain every concept. 
+State one observation, one risk, and one implication. 
+Avoid listing multiple mechanisms or pathways; name at most one if necessary.
+
+Mention any specific biomarker (e.g. NfL) at most once. 
+After introducing it, refer to it indirectly (e.g. "the marker", "that layer").
+
+Avoid explanatory or didactic language. 
+Do not sound like a review or teaching text.
+Avoid phrases like "the implication is", "this means", or "in that setting".
+
+Prefer under-explaining over over-explaining.
+
+Write as if you noticed one specific tension in the trial, not as if you are explaining the disease or educating the reader. Mention any specific biomarker (e.g. NfL) at most once. Do not repeat it.
+After introducing it, refer to it indirectly (e.g. "the marker", "that layer"). Keep the email tight and selective. Do not explain every concept. 
+State one observation, one risk, and one implication. 
+Avoid listing multiple mechanisms or pathways; name at most one or two.
+Do not sound like a review or teaching text.
+Prefer under-explaining over over-explaining. No sales language, no frameworks. Do not use words like "brief" or "quick".
+
+Start with a concrete observation grounded in the trial design, endpoint, population, or measurement layer.
+
+Measurement logic:
+For ALS and MS, explicitly anchor the reasoning in NfL as the primary measurement layer before introducing any downstream or complementary layers.
+If a biomarker, imaging modality, clinical scale, endpoint, or molecular measurement is explicitly mentioned in the trial, anchor the email in that measurement and explain what it captures versus what it misses.
+If none is mentioned, infer the dominant measurement layer typically used in this disease area, such as NfL in ALS or MS, pTau217 or amyloid/tau PET in Alzheimers, alpha-synuclein in Parkinsons, HbA1c or CGM in diabetes, LDL-C or troponin in cardiovascular disease, eGFR or UACR in kidney disease, ctDNA, PD-L1, ORR or PFS in oncology, or cytokines and flow cytometry in immunology or cell therapy.
+Do not make abstract statements about biology or signal. Always tie the reasoning to one concrete measurement.
+
+Translate the Commercial Hypothesis into one specific, non-obvious risk tailored to this trial. Embed Why Now implicitly through phase, scale, status, timing, or readout risk. Embed Why Us implicitly by hinting at pathway-level metabolomic resolution, without pitching.
+
+Include exactly one soft, open-ended question. Keep tone calm, precise, slightly tentative, high-status. No enthusiasm. No meeting request. No hard close.
+
+End with this exact redirect sentence:
+If this sits elsewhere on your side, I would appreciate a pointer.
+
+Output only subject line and email.
+"""
+
                 response = client.responses.create(
                     model="gpt-5.5",
                     input=prompt
                 )
-    
+
                 st.write(response.output_text)
-    
-    # ----------------------------
-    # TAB 3 — PHASE 3 WATCHLIST
-    # ----------------------------
-    with tab3:
-        display_df = prepare_display_df(phase3_watchlist)
-        st.dataframe(
-            style_score_table(display_df),
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "NCT_Link": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
-                "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
-                "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
-            }
-        )
-    
-        df_download_button(
-            phase3_watchlist,
-            f"atlas_radar_{mode.lower()}_phase3_watchlist.csv",
-            "Download Phase 3 Watchlist CSV"
-        )
-    
-    # ----------------------------
-    # TAB 4 — DEBUG
-    # ----------------------------
-    with tab4:
-        st.write("Debug summary")
-        st.dataframe(debug_summary, use_container_width=True, hide_index=True)
-    
-        if not error_df.empty:
-            st.write("Request errors")
-            st.dataframe(error_df, use_container_width=True, hide_index=True)
-    
-        df_download_button(
-            full_df,
-            f"atlas_radar_{mode.lower()}_full.csv",
-            "Download Full CSV"
-    )
