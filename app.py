@@ -23,7 +23,7 @@ st.set_page_config(page_title="Atlas Radar", layout="wide")
 
 BASE_URL = "https://clinicaltrials.gov/api/v2/studies"
 PAGE_SIZE = 200
-MAX_PAGES_PER_QUERY = 4
+MAX_PAGES_PER_QUERY = 8
 TIMEOUT = 30
 REQUEST_SLEEP_SECONDS = 0.15
 
