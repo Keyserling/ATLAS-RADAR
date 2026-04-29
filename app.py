@@ -1304,6 +1304,7 @@ Write like a peer, not a vendor. No sales language, no frameworks. Do not use wo
 Start with a concrete observation grounded in the trial design, endpoint, population, or measurement layer.
 
 Measurement logic:
+For ALS and MS, explicitly anchor the reasoning in NfL as the primary measurement layer before introducing any downstream or complementary layers.
 If a biomarker, imaging modality, clinical scale, endpoint, or molecular measurement is explicitly mentioned in the trial, anchor the email in that measurement and explain what it captures versus what it misses.
 If none is mentioned, infer the dominant measurement layer typically used in this disease area, such as NfL in ALS or MS, pTau217 or amyloid/tau PET in Alzheimers, alpha-synuclein in Parkinsons, HbA1c or CGM in diabetes, LDL-C or troponin in cardiovascular disease, eGFR or UACR in kidney disease, ctDNA, PD-L1, ORR or PFS in oncology, or cytokines and flow cytometry in immunology or cell therapy.
 Do not make abstract statements about biology or signal. Always tie the reasoning to one concrete measurement.
