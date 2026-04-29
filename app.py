@@ -1209,23 +1209,18 @@ if run:
         ["Selected Domain", "Phase 3 Watchlist", "Debug"]
     )
 
-    with tab1:
-        st.write(f"Domain: {domain}")
-        display_df = prepare_display_df(selected_domain)
-        st.dataframe(
-            style_score_table(display_df),
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "NCT_Link": st.column_config.LinkColumn("NCT", display_text=r"(NCT\d+)"),
-                "Score_10": st.column_config.NumberColumn("Score / 10", format="%.1f"),
-                "Enrollment": st.column_config.NumberColumn("Enrollment", format="%d"),
-            }
-        )
+    with tab3:
+        st.write("Debug summary")
+        st.dataframe(debug_summary, use_container_width=True, hide_index=True)
+
+        if not error_df.empty:
+            st.write("Request errors")
+            st.dataframe(error_df, use_container_width=True, hide_index=True)
+
         df_download_button(
-            selected_domain,
-            f"atlas_radar_{mode.lower()}_{domain.lower().replace(' ', '_').replace('/', '').replace('__', '_')}.csv",
-            "Download Selected Domain CSV"
+            full_df,
+            f"atlas_radar_{mode.lower()}_full.csv",
+            "Download Full CSV"
         )
 
     with tab2:
