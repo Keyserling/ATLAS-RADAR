@@ -1170,13 +1170,10 @@ controls_tuple = tuple(sorted(controls.items()))
 
 run = st.button("Run Atlas Radar", type="primary", use_container_width=True)
 
-if run:
-    st.session_state["run"] = True
-
 if st.button("Clear cache"):
     st.cache_data.clear()
 
-if st.session_state.get("run"):
+if run:
     with st.spinner("Running Atlas Radar..."):
         full_df, metabolic_core, neuro_celltherapy, phase3_watchlist, debug_summary, error_df = fetch_trials(
             mode,
@@ -1213,7 +1210,7 @@ if st.session_state.get("run"):
     st.markdown("---")
 
     tab1, tab2, tab3 = st.tabs(
-        ["Outreach Engine", "Phase 3 Watchlist", "Debug"]
+        ["Selected Domain", "Phase 3 Watchlist", "Debug"]
     )
 
     with tab1:
@@ -1262,33 +1259,33 @@ if st.session_state.get("run"):
             st.write("Request errors")
             st.dataframe(error_df, use_container_width=True, hide_index=True)
 
-      df_download_button(
-          full_df,
-          f"atlas_radar_{mode.lower()}_full.csv",
-          "Download Full CSV"
-      )
-    
-      st.divider()
-      st.subheader("Generate Outreach Email")
-    
-      email_df = selected_domain.copy()
-    
-            if email_df.empty:
-                st.info("No trials available for email generation.")
-            else:
-                selected_index = st.selectbox(
-                    "Select Trial",
-                    email_df.index,
-                    format_func=lambda i: (
-                        f"{email_df.loc[i].get('LeadSponsor', '')} | "
-                        f"{email_df.loc[i].get('PhaseBucket', '')} | "
-                        f"{str(email_df.loc[i].get('Title', ''))[:80]}"
-                    )
+        df_download_button(
+            full_df,
+            f"atlas_radar_{mode.lower()}_full.csv",
+            "Download Full CSV"
+        )
+
+        st.divider()
+        st.subheader("Generate Outreach Email")
+
+        email_df = selected_domain.copy()
+
+        if email_df.empty:
+            st.info("No trials available for email generation.")
+        else:
+            selected_index = st.selectbox(
+                "Select Trial",
+                email_df.index,
+                format_func=lambda i: (
+                    f"{email_df.loc[i].get('LeadSponsor', '')} | "
+                    f"{email_df.loc[i].get('PhaseBucket', '')} | "
+                    f"{str(email_df.loc[i].get('Title', ''))[:80]}"
                 )
-    
-                selected_row = email_df.loc[selected_index]
-    
-                if st.button("Generate Email"):      
+            )
+
+            selected_row = email_df.loc[selected_index]
+
+            if st.button("Generate Email"):
                 prompt = f"""
 Write a short 120-150 word, high-intelligence outreach email to a senior pharma stakeholder based on the clinical trial below. Your goal is to trigger a thoughtful reply or a referral.
 
@@ -1305,13 +1302,9 @@ Write like a peer, not a vendor. No sales language, no frameworks. Do not use wo
 Start with a concrete observation grounded in the trial design, endpoint, population, or measurement layer.
 
 Measurement logic:
-Always anchor the email in one concrete biological measurement layer.
-
-If a biomarker, imaging modality, clinical scale, or molecular readout is explicitly mentioned in the trial, use that measurement and explain what it captures vs what it misses.
-
-If the trial relies primarily on functional or composite endpoints (e.g. ALSFRS-R, CAFS), you must introduce the dominant biological measurement layer used in this disease area (e.g. NfL in ALS/MS, pTau217 in Alzheimer’s, HbA1c in diabetes) and explain the gap between the clinical endpoint and the underlying biology.
-
-Do not stay at the level of clinical endpoints alone. Always bridge to a molecular or pathway-level readout. Always tie the reasoning to one concrete measurement.
+If a biomarker, imaging modality, clinical scale, endpoint, or molecular measurement is explicitly mentioned in the trial, anchor the email in that measurement and explain what it captures versus what it misses.
+If none is mentioned, infer the dominant measurement layer typically used in this disease area, such as NfL in ALS or MS, pTau217 or amyloid/tau PET in Alzheimers, alpha-synuclein in Parkinsons, HbA1c or CGM in diabetes, LDL-C or troponin in cardiovascular disease, eGFR or UACR in kidney disease, ctDNA, PD-L1, ORR or PFS in oncology, or cytokines and flow cytometry in immunology or cell therapy.
+Do not make abstract statements about biology or signal. Always tie the reasoning to one concrete measurement.
 
 Translate the Commercial Hypothesis into one specific, non-obvious risk tailored to this trial. Embed Why Now implicitly through phase, scale, status, timing, or readout risk. Embed Why Us implicitly by hinting at pathway-level metabolomic resolution, without pitching.
 
