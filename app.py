@@ -1288,7 +1288,7 @@ Start with a concrete observation grounded in the trial design, endpoint, popula
 
 Measurement logic:
 If a biomarker, imaging modality, clinical scale, endpoint, or molecular measurement is explicitly mentioned in the trial, anchor the email in that measurement and explain what it captures vs what it misses.
-If none is mentioned, infer the dominant measurement layer typically used in this disease area, such as NfL in ALS/MS, pTau217 or amyloid/tau PET in Alzheimer’s, alpha-synuclein in Parkinson’s, HbA1c or CGM in diabetes, LDL-C or troponin in cardiovascular disease, eGFR or UACR in kidney disease, ctDNA/PD-L1/ORR/PFS in oncology, or cytokines/flow cytometry in immunology/cell therapy.
+If none is mentioned, infer the dominant measurement layer typically used in this disease area, such as NfL in ALS/MS, pTau217 or amyloid/tau PET in Alzheimers, alpha-synuclein in Parkinson's, HbA1c or CGM in diabetes, LDL-C or troponin in cardiovascular disease, eGFR or UACR in kidney disease, ctDNA/PD-L1/ORR/PFS in oncology, or cytokines/flow cytometry in immunology/cell therapy.
 Do not make abstract statements about “biology” or “signal”; always tie the reasoning to one concrete measurement.
 
 Translate the Commercial Hypothesis into one specific, non-obvious risk tailored to this trial. Embed Why Now implicitly through phase, scale, status, timing, or readout risk. Embed Why Us implicitly by hinting at pathway-level/metabolomic resolution, without pitching.
@@ -1296,7 +1296,7 @@ Translate the Commercial Hypothesis into one specific, non-obvious risk tailored
 Include exactly one soft, open-ended question. Keep tone calm, precise, slightly tentative, high-status. No enthusiasm. No meeting request. No hard close.
 
 End with this exact redirect sentence:
-If this sits elsewhere on your side, I’d appreciate a pointer.
+If this sits elsewhere on your side, I'd appreciate a pointer.
 
 Output only subject line and email.
 """
