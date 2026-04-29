@@ -1260,7 +1260,13 @@ if run:
             "Download Full CSV"
         )
 # sichere Spaltenwahl (verhindert Fehler)
-selected_trial = st.text_input("Paste NCT link")
+selected_index = st.selectbox(
+    "Select Trial",
+    display_df.index,
+    format_func=lambda i: f"{display_df.loc[i, 'LeadSponsor']} | {display_df.loc[i, 'PhaseBucket']} | {display_df.loc[i, 'Title'][:80]}"
+)
+
+selected_row = display_df.loc[selected_index]
 
 if st.button("Generate Email"):
     response = client.responses.create(
@@ -1269,7 +1275,12 @@ if st.button("Generate Email"):
 Write a short (120–150 words), high-intelligence outreach email to a senior pharma stakeholder based on the clinical trial below. Your goal is to trigger a thoughtful reply or a referral.
 
 Context:
-- Trial: {selected_trial}
+- Trial: {selected_row['NCT_Link']}
+Company: {selected_row['LeadSponsor']}
+Phase: {selected_row['PhaseBucket']}
+Title: {selected_row['Title']}
+Primary Outcome: {selected_row['PrimaryOutcome']}
+Commercial Hypothesis: {selected_row['CommercialHypothesis']}
 - Company: infer from the trial if available
 - Phase: infer from the trial if available
 - Target role: Biomarker / Translational / Clinical Development Lead
