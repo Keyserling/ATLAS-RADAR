@@ -1,4 +1,4 @@
-# stable version checkpoint
+# stable version checkpoint1 with Biomarker Language
 from openai import OpenAI
 import streamlit as st
 
