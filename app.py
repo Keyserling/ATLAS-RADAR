@@ -1265,23 +1265,33 @@ selected_trial = st.text_input("Paste NCT link")
 if st.button("Generate Email"):
     response = client.responses.create(
         model="gpt-5.5",
-        input=f"""
-Write a short (120–150 words), high-intelligence outreach email to a senior pharma stakeholder.
+        input=input=f"""
+Write a short (120–150 words), high-intelligence outreach email to a senior pharma stakeholder based on the clinical trial below. Your goal is to trigger a thoughtful reply or a referral.
 
 Context:
-Trial: {selected_trial}
+- Trial: {selected_trial}
+- Company: infer from the trial if available
+- Phase: infer from the trial if available
+- Target role: Biomarker / Translational / Clinical Development Lead
+- Commercial Hypothesis: Mechanistic Gap unless the trial clearly suggests Blind Scale Risk, Stratification Risk, or Expansion Opportunity
 
-Write like a peer, not a vendor. No sales language, no frameworks.
+Write like a peer, not a vendor. No sales language, no frameworks. Do not use words like "brief" or "quick".
 
-Start with a concrete observation about the trial design or endpoint.
-Identify one non-obvious risk or gap.
-Frame it as a genuine curiosity, not a claim.
+Start with a concrete observation grounded in the trial design, endpoint, population, or measurement layer.
 
-Include exactly one soft, open-ended question.
+Measurement logic:
+If a biomarker, imaging modality, clinical scale, endpoint, or molecular measurement is explicitly mentioned in the trial, anchor the email in that measurement and explain what it captures vs what it misses.
+If none is mentioned, infer the dominant measurement layer typically used in this disease area, such as NfL in ALS/MS, pTau217 or amyloid/tau PET in Alzheimer’s, alpha-synuclein in Parkinson’s, HbA1c or CGM in diabetes, LDL-C or troponin in cardiovascular disease, eGFR or UACR in kidney disease, ctDNA/PD-L1/ORR/PFS in oncology, or cytokines/flow cytometry in immunology/cell therapy.
+Do not make abstract statements about “biology” or “signal”; always tie the reasoning to one concrete measurement.
 
-Keep tone calm, precise, slightly tentative, high-status.
+Translate the Commercial Hypothesis into one specific, non-obvious risk tailored to this trial. Embed Why Now implicitly through phase, scale, status, timing, or readout risk. Embed Why Us implicitly by hinting at pathway-level/metabolomic resolution, without pitching.
 
-End with a natural redirect sentence if this sits with someone else.
+Include exactly one soft, open-ended question. Keep tone calm, precise, slightly tentative, high-status. No enthusiasm. No meeting request. No hard close.
+
+End with this exact redirect sentence:
+If this sits elsewhere on your side, I’d appreciate a pointer.
+
+Output only subject line and email.
 """
     )
     st.write(response.output_text)
