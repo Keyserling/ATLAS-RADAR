@@ -1299,7 +1299,11 @@ Title: {selected_row.get('Title', '')}
 Primary Outcome: {selected_row.get('PrimaryOutcome', '')}
 Commercial Hypothesis: {selected_row.get('CommercialHypothesis', '')}
 
-Write like a peer, not a vendor. No sales language, no frameworks. Do not use words like "brief" or "quick".
+Write like a peer, not a vendor. Keep the email tight and selective. Do not explain every concept. 
+State one observation, one risk, and one implication. 
+Avoid listing multiple mechanisms or pathways; name at most one or two.
+Do not sound like a review or teaching text.
+Prefer under-explaining over over-explaining. No sales language, no frameworks. Do not use words like "brief" or "quick".
 
 Start with a concrete observation grounded in the trial design, endpoint, population, or measurement layer.
 
