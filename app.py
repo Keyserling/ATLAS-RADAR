@@ -1261,7 +1261,7 @@ if run:
         )
 selected_trial = st.selectbox(
     "Select Trial",
-    df["NCT_Link"]
+    full_df["NCT_Link"]
 )
 
 if st.button("Generate Email"):
