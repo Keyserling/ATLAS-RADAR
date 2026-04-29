@@ -1261,12 +1261,12 @@ if run:
         )
 selected_trial = st.selectbox(
     "Select Trial",
-    df["NCT_Link"]
+    full_df["NCT_Link"]
 )
 
 if st.button("Generate Email"):
     response = client.responses.create(
         model="gpt-5.5",
-        input="Write a short pharma outreach email."
+        input=f"Write a short pharma outreach email for this trial: {selected_trial}"
     )
     st.write(response.output_text)
