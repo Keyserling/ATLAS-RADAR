@@ -1268,7 +1268,7 @@ if run:
         st.divider()
         st.subheader("Generate Outreach Email")
 
-        email_df = full_df.copy()
+        email_df = selected_domain.copy()
 
         if email_df.empty:
             st.info("No trials available for email generation.")
