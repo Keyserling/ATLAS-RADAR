@@ -1213,7 +1213,7 @@ if st.session_state.get("run"):
     st.markdown("---")
 
     tab1, tab2, tab3 = st.tabs(
-        ["Selected Domain", "Phase 3 Watchlist", "Debug"]
+        ["Outreach Engine", "Phase 3 Watchlist", "Debug"]
     )
 
     with tab1:
@@ -1276,7 +1276,7 @@ if st.session_state.get("run"):
         if email_df.empty:
             st.info("No trials available for email generation.")
         else:
-            selected_index = st.selectbox(
+            email_df.index
                 "Select Trial",
                 email_df.index,
                 format_func=lambda i: (
